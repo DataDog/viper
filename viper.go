@@ -634,6 +634,12 @@ func (v *Viper) GetE(key string) (interface{}, error) {
 			return cast.ToStringE(val)
 		case int32, int16, int8, int:
 			return cast.ToIntE(val)
+		case uint:
+			return cast.ToUintE(val)
+		case uint32:
+			return cast.ToUint32E(val)
+		case uint64:
+			return cast.ToUint64E(val)
 		case int64:
 			return cast.ToInt64E(val)
 		case float64, float32:
@@ -732,6 +738,24 @@ func (v *Viper) GetInt64(key string) int64 {
 func GetInt64E(key string) (int64, error) { return v.GetInt64E(key) }
 func (v *Viper) GetInt64E(key string) (int64, error) {
 	return cast.ToInt64E(v.GetRaw(key))
+}
+
+// GetUint returns the value associated with the key as an unsigned integer.
+func GetUint(key string) uint { return v.GetUint(key) }
+func (v *Viper) GetUint(key string) uint {
+	return cast.ToUint(v.Get(key))
+}
+
+// GetUint32 returns the value associated with the key as an unsigned integer.
+func GetUint32(key string) uint32 { return v.GetUint32(key) }
+func (v *Viper) GetUint32(key string) uint32 {
+	return cast.ToUint32(v.Get(key))
+}
+
+// GetUint64 returns the value associated with the key as an unsigned integer.
+func GetUint64(key string) uint64 { return v.GetUint64(key) }
+func (v *Viper) GetUint64(key string) uint64 {
+	return cast.ToUint64(v.Get(key))
 }
 
 // GetFloat64 returns the value associated with the key as a float64.
