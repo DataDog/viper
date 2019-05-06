@@ -35,6 +35,7 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/docker/docker/cli/compose/template"
 	"github.com/fsnotify/fsnotify"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/printer"
@@ -173,6 +174,10 @@ type Viper struct {
 	// A set of paths to look for the config file in
 	configPaths []string
 
+	//Wether we should interpolate environment $VARS when parsing the config
+	interpolateEnvVars       bool
+	interpolationMappingFunc template.Mapping //For testing
+
 	// The filesystem to read config from.
 	fs afero.Fs
 
@@ -210,6 +215,8 @@ type Viper struct {
 func New() *Viper {
 	v := new(Viper)
 	v.keyDelim = "."
+	v.interpolateEnvVars = false
+	v.interpolationMappingFunc = os.LookupEnv
 	v.configName = "config"
 	v.fs = afero.NewOsFs()
 	v.config = make(map[string]interface{})
@@ -1539,6 +1546,10 @@ func (v *Viper) unmarshalReader(in io.Reader, c map[string]interface{}) error {
 		}
 	}
 
+	if v.interpolateEnvVars {
+		interpolateEnvVars(c, v.interpolationMappingFunc)
+	}
+
 	insensitiviseMap(c)
 	return nil
 }
@@ -1926,6 +1937,12 @@ func (v *Viper) SetConfigType(in string) {
 	if in != "" {
 		v.configType = in
 	}
+}
+
+// SetFs enables or disables the interpolation of env vars when reading the config.
+func SetInterpolateEnvVars(interpolateEnvVars bool) { v.SetInterpolateEnvVars(interpolateEnvVars) }
+func (v *Viper) SetInterpolateEnvVars(interpolateEnvVars bool) {
+	v.interpolateEnvVars = interpolateEnvVars
 }
 
 func (v *Viper) getConfigType() string {

@@ -14,10 +14,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"unicode"
 
+	"github.com/docker/docker/cli/compose/template"
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"
 	jww "github.com/spf13/jwalterweatherman"
@@ -85,6 +87,42 @@ func insensitiviseMap(m map[string]interface{}) {
 		}
 		// update map
 		m[lower] = val
+	}
+}
+
+func interpolateEnvVars(val map[string]interface{}, mapping template.Mapping) error {
+	_, err := interpolateRecursive(reflect.ValueOf(val), mapping)
+	return err
+}
+
+func interpolateRecursive(val reflect.Value, mapping template.Mapping) (reflect.Value, *template.InvalidTemplateError) {
+	switch val.Kind() {
+	case reflect.Ptr, reflect.Interface:
+		return interpolateRecursive(val.Elem(), mapping)
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < val.Len(); i++ {
+			res, err := interpolateRecursive(val.Index(i), mapping)
+			if err != nil {
+				return val, err
+			}
+			val.Index(i).Set(res)
+		}
+		return val, nil
+	case reflect.Map:
+		for _, k := range val.MapKeys() {
+			mapVal := val.MapIndex(k)
+			res, err := interpolateRecursive(mapVal, mapping)
+			if err != nil {
+				return val, err
+			}
+			val.SetMapIndex(k, res)
+		}
+		return val, nil
+	case reflect.String:
+		ret, err := template.Substitute(val.String(), mapping)
+		return reflect.ValueOf(ret), err
+	default:
+		return val, nil
 	}
 }
 

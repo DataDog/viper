@@ -1786,3 +1786,39 @@ func TestKnownKeys(t *testing.T) {
 		t.Error("SetKnown didn't mark key as known")
 	}
 }
+
+func TestEnVarInterpolation(t *testing.T) {
+
+	var yamlWithEnvVars = `
+simple: $FIRST
+array:
+- $SECOND
+- ${THIRD}
+submap:
+  subkey: $FOURTH
+failed: $THIS_ONE_SHOULD_FAIL
+defaulted: ${THIS_ONE_SHOULD_FAIL:-BUT_HAS_A_HANDY_DEFAULT}
+`
+
+	v := New()
+	initConfig(v, "yaml", yamlWithEnvVars)
+
+	//Interpolation is disabled by default
+	assert.Equal(t, "$FIRST", v.Get("simple"))
+
+	v = New()
+	v.SetInterpolateEnvVars(true)
+	v.interpolationMappingFunc = func(in string) (string, bool) {
+		if in == "THIS_ONE_SHOULD_FAIL" {
+			return "fail", false
+		}
+		return "replaced_" + in, true
+	}
+	initConfig(v, "yaml", yamlWithEnvVars)
+
+	assert.Equal(t, "replaced_FIRST", v.Get("simple"))
+	assert.Equal(t, []string{"replaced_SECOND", "replaced_THIRD"}, v.GetStringSlice("array"))
+	assert.Equal(t, "replaced_FOURTH", v.Get("submap.subkey"))
+	assert.Equal(t, nil, v.Get("THIS_ONE_SHOULD_FAIL"))
+	assert.Equal(t, "BUT_HAS_A_HANDY_DEFAULT", v.Get("defaulted"))
+}
