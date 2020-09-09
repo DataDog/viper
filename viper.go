@@ -195,6 +195,7 @@ type Viper struct {
 	kvstore        map[string]interface{}
 	pflags         map[string]FlagValue
 	env            map[string][]string
+	envTransform   map[string]func(string) interface{}
 	aliases        map[string]string
 	knownKeys      map[string]interface{}
 	typeByDefValue bool
@@ -218,6 +219,7 @@ func New() *Viper {
 	v.kvstore = make(map[string]interface{})
 	v.pflags = make(map[string]FlagValue)
 	v.env = make(map[string][]string)
+	v.envTransform = make(map[string]func(string) interface{})
 	v.aliases = make(map[string]string)
 	v.knownKeys = make(map[string]interface{})
 	v.typeByDefValue = false
@@ -366,6 +368,13 @@ func (v *Viper) SetEnvPrefix(in string) {
 	if in != "" {
 		v.envPrefix = in
 	}
+}
+
+// SetEnvKeyTransformer allows defining a transformer function which decides
+// how an environment variables value gets assigned to key.
+func SetEnvKeyTransformer(key string, fn func(string) interface{}) { v.SetEnvKeyTransformer(key, fn) }
+func (v *Viper) SetEnvKeyTransformer(key string, fn func(string) interface{}) {
+	v.envTransform[strings.ToLower(key)] = fn
 }
 
 func (v *Viper) mergeWithEnvPrefix(in string) string {
@@ -1111,6 +1120,9 @@ func (v *Viper) find(lcaseKey string) interface{} {
 	if exists {
 		for _, key := range envkeys {
 			if val, ok := v.getEnv(key); ok {
+				if fn, ok := v.envTransform[lcaseKey]; ok {
+					return fn(val)
+				}
 				return val
 			}
 		}
