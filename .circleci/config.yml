@@ -1,0 +1,73 @@
+# TODO
+# - run on linux and osx
+
+version: 2.1
+jobs:
+  linux-tests:
+    parameters:
+      version:
+        type: string
+    docker:
+      - image: "circleci/golang:<< parameters.version >>"
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v4-{{ checksum "go.sum" }}
+      - run:
+          name: Install Dependencies
+          command: go mod download
+      - save_cache:
+          key: go-mod-v4-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+      - run:
+          name: Run tests
+          command: |
+            go version &&
+            diff -u <(echo -n) <(gofmt -d .) &&
+            go test -v -mod=readonly ./...
+      - store_test_results:
+          path: /tmp/test-reports
+
+  mac-tests:
+    parameters:
+      version:
+        type: string
+    macos:
+      xcode: 13.0.0
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v4-{{ checksum "go.sum" }}
+      - run:
+          name: Install Dependencies
+          command: go mod download
+      - save_cache:
+          key: go-mod-v4-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+      - run:
+          name: Run tests
+          command: |
+            go version &&
+            diff -u <(echo -n) <(gofmt -d .) &&
+            go test -v -mod=readonly ./...
+      - store_test_results:
+          path: /tmp/test-reports
+
+workflows:
+  ci:
+    jobs:
+      - linux-tests:
+          matrix:
+            parameters:
+              version: ["latest", "1.14.14"]
+      - mac-tests:
+          matrix:
+            parameters:
+              version: ["latest", "1.14.14"]
+
