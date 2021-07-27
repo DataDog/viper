@@ -1232,6 +1232,8 @@ func (v *Viper) SetKnown(key string) {
 
 // GetKnownKeys returns all the keys that meet at least one of these criteria:
 // 1) have a default, 2) have an environment variable binded, 3) are an alias or 4) have been SetKnown()
+//
+// The returned map is cloned, so the caller may do with it as they please.
 func GetKnownKeys() map[string]interface{} { return v.GetKnownKeys() }
 func (v *Viper) GetKnownKeys() map[string]interface{} {
 	ret := make(map[string]interface{})
@@ -1818,6 +1820,8 @@ outer:
 }
 
 // AllSettings merges all settings and returns them as a map[string]interface{}.
+//
+// The returned map is created in this function, so the caller may do with it as they please.
 func AllSettings() map[string]interface{} { return v.AllSettings() }
 func (v *Viper) AllSettings() map[string]interface{} {
 	m := map[string]interface{}{}
