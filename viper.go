@@ -184,9 +184,8 @@ type Viper struct {
 	configType string
 	envPrefix  string
 
-	automaticEnvApplied bool
-	envKeyReplacer      *strings.Replacer
-	allowEmptyEnv       bool
+	envKeyReplacer *strings.Replacer
+	allowEmptyEnv  bool
 
 	config         map[string]interface{}
 	override       map[string]interface{}
@@ -1036,16 +1035,6 @@ func (v *Viper) find(lcaseKey string) (interface{}, bool) {
 	}
 
 	// Env override next
-	if v.automaticEnvApplied {
-		// even if it hasn't been registered, if automaticEnv is used,
-		// check any Get request
-		if val, ok := v.getEnv(v.mergeWithEnvPrefix(lcaseKey)); ok {
-			return val, true
-		}
-		if nested && v.isPathShadowedInAutoEnv(path) != "" {
-			return nil, false
-		}
-	}
 	envkeys, exists := v.env[lcaseKey]
 	if exists {
 		for _, key := range envkeys {
@@ -1126,13 +1115,6 @@ func (v *Viper) IsSet(key string) bool {
 	lcaseKey := strings.ToLower(key)
 	_, found := v.find(lcaseKey)
 	return found
-}
-
-// AutomaticEnv has Viper check ENV variables for all.
-// keys set in config, default & flags
-func AutomaticEnv() { v.AutomaticEnv() }
-func (v *Viper) AutomaticEnv() {
-	v.automaticEnvApplied = true
 }
 
 // SetEnvKeyReplacer sets the strings.Replacer on the viper object

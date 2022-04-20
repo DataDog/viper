@@ -394,9 +394,6 @@ func TestEnv(t *testing.T) {
 	assert.Equal(t, "apple", v.Get("f"))
 	assert.Equal(t, "Cake", v.Get("name"))
 
-	v.AutomaticEnv()
-
-	assert.Equal(t, "crunk", v.Get("name"))
 }
 
 func TestEnvTransformer(t *testing.T) {
@@ -426,9 +423,6 @@ func TestMultipleEnv(t *testing.T) {
 	assert.Equal(t, "banana", v.Get("f"))
 	assert.Equal(t, "Cake", v.Get("name"))
 
-	v.AutomaticEnv()
-
-	assert.Equal(t, "crunk", v.Get("name"))
 }
 
 func TestEmptyEnv(t *testing.T) {
@@ -479,29 +473,12 @@ func TestEnvPrefix(t *testing.T) {
 	assert.Equal(t, "apple", v.Get("f"))
 	assert.Equal(t, "Cake", v.Get("name"))
 
-	v.AutomaticEnv()
-
-	assert.Equal(t, "crunk", v.Get("name"))
-}
-
-func TestAutoEnv(t *testing.T) {
-	v := New()
-	v.AutomaticEnv()
-	os.Setenv("FOO_BAR", "13")
-	assert.Equal(t, "13", v.Get("foo_bar"))
-}
-
-func TestAutoEnvWithPrefix(t *testing.T) {
-	v := New()
-	v.AutomaticEnv()
-	v.SetEnvPrefix("Baz")
-	os.Setenv("BAZ_BAR", "13")
-	assert.Equal(t, "13", v.Get("bar"))
 }
 
 func TestSetEnvKeyReplacer(t *testing.T) {
 	v := New()
-	v.AutomaticEnv()
+
+	v.BindEnv("refresh-interval")
 	os.Setenv("REFRESH_INTERVAL", "30s")
 
 	replacer := strings.NewReplacer("-", "_")
