@@ -469,9 +469,9 @@ func (v *Viper) searchMap(source map[string]interface{}, path []string) interfac
 // in their keys).
 //
 // Note: This assumes that the path entries and map keys are lower cased.
-func (v *Viper) searchMapWithPathPrefixes(source map[string]interface{}, path []string) interface{} {
+func (v *Viper) searchMapWithPathPrefixes(source map[string]interface{}, path []string) (interface{}, bool) {
 	if len(path) == 0 {
-		return source
+		return source, true
 	}
 
 	// search for path prefixes, starting from the longest one
@@ -482,29 +482,29 @@ func (v *Viper) searchMapWithPathPrefixes(source map[string]interface{}, path []
 		if ok {
 			// Fast path
 			if i == len(path) {
-				return next
+				return next, true
 			}
-
 			// Nested case
 			var val interface{}
+			found := false
 			switch next.(type) {
 			case map[interface{}]interface{}:
-				val = v.searchMapWithPathPrefixes(cast.ToStringMap(next), path[i:])
+				val, found = v.searchMapWithPathPrefixes(cast.ToStringMap(next), path[i:])
 			case map[string]interface{}:
 				// Type assertion is safe here since it is only reached
 				// if the type of `next` is the same as the type being asserted
-				val = v.searchMapWithPathPrefixes(next.(map[string]interface{}), path[i:])
+				val, found = v.searchMapWithPathPrefixes(next.(map[string]interface{}), path[i:])
 			default:
 				// got a value but nested key expected, do nothing and look for next prefix
 			}
-			if val != nil {
-				return val
+			if found {
+				return val, found
 			}
 		}
 	}
 
 	// not found
-	return nil
+	return nil, false
 }
 
 // isPathShadowedInDeepMap makes sure the given path is not shadowed somewhere
@@ -613,7 +613,7 @@ func (v *Viper) Get(key string) interface{} {
 func GetE(key string) (interface{}, error) { return v.GetE(key) }
 func (v *Viper) GetE(key string) (interface{}, error) {
 	lcaseKey := strings.ToLower(key)
-	val := v.find(lcaseKey)
+	val, _ := v.find(lcaseKey)
 	if val == nil {
 		return nil, nil
 	}
@@ -654,7 +654,8 @@ func (v *Viper) GetE(key string) (interface{}, error) {
 func GetRaw(key string) interface{} { return v.GetRaw(key) }
 func (v *Viper) GetRaw(key string) interface{} {
 	lcaseKey := strings.ToLower(key)
-	return v.find(lcaseKey)
+	val, _ := v.find(lcaseKey)
+	return val
 }
 
 // Sub returns new Viper instance representing a sub tree of this instance.
@@ -985,7 +986,7 @@ func (v *Viper) BindEnv(input ...string) error {
 // flag, env, config file, key/value store, default.
 // Viper will check to see if an alias exists first.
 // Note: this assumes a lower-cased key given.
-func (v *Viper) find(lcaseKey string) interface{} {
+func (v *Viper) find(lcaseKey string) (interface{}, bool) {
 
 	var (
 		val    interface{}
@@ -996,7 +997,7 @@ func (v *Viper) find(lcaseKey string) interface{} {
 
 	// compute the path through the nested maps to the nested value
 	if nested && v.isPathShadowedInDeepMap(path, castMapStringToMapInterface(v.aliases)) != "" {
-		return nil
+		return nil, false
 	}
 
 	// if the requested key is an alias, then return the proper key
@@ -1007,10 +1008,10 @@ func (v *Viper) find(lcaseKey string) interface{} {
 	// Set() override first
 	val = v.searchMap(v.override, path)
 	if val != nil {
-		return val
+		return val, true
 	}
 	if nested && v.isPathShadowedInDeepMap(path, v.override) != "" {
-		return nil
+		return nil, false
 	}
 
 	// PFlag override next
@@ -1018,20 +1019,20 @@ func (v *Viper) find(lcaseKey string) interface{} {
 	if exists && flag.HasChanged() {
 		switch flag.ValueType() {
 		case "int", "int8", "int16", "int32", "int64":
-			return cast.ToInt(flag.ValueString())
+			return cast.ToInt(flag.ValueString()), true
 		case "bool":
-			return cast.ToBool(flag.ValueString())
+			return cast.ToBool(flag.ValueString()), true
 		case "stringSlice":
 			s := strings.TrimPrefix(flag.ValueString(), "[")
 			s = strings.TrimSuffix(s, "]")
 			res, _ := readAsCSV(s)
-			return res
+			return res, true
 		default:
-			return flag.ValueString()
+			return flag.ValueString(), true
 		}
 	}
 	if nested && v.isPathShadowedInFlatMap(path, v.pflags) != "" {
-		return nil
+		return nil, false
 	}
 
 	// Env override next
@@ -1039,10 +1040,10 @@ func (v *Viper) find(lcaseKey string) interface{} {
 		// even if it hasn't been registered, if automaticEnv is used,
 		// check any Get request
 		if val, ok := v.getEnv(v.mergeWithEnvPrefix(lcaseKey)); ok {
-			return val
+			return val, true
 		}
 		if nested && v.isPathShadowedInAutoEnv(path) != "" {
-			return nil
+			return nil, false
 		}
 	}
 	envkeys, exists := v.env[lcaseKey]
@@ -1050,41 +1051,41 @@ func (v *Viper) find(lcaseKey string) interface{} {
 		for _, key := range envkeys {
 			if val, ok := v.getEnv(key); ok {
 				if fn, ok := v.envTransform[lcaseKey]; ok {
-					return fn(val)
+					return fn(val), true
 				}
-				return val
+				return val, true
 			}
 		}
 	}
 	if nested && v.isPathShadowedInFlatMap(path, v.env) != "" {
-		return nil
+		return nil, false
 	}
 
 	// Config file next
-	val = v.searchMapWithPathPrefixes(v.config, path)
-	if val != nil {
-		return val
+	val, ok := v.searchMapWithPathPrefixes(v.config, path)
+	if ok {
+		return val, true
 	}
 	if nested && v.isPathShadowedInDeepMap(path, v.config) != "" {
-		return nil
+		return nil, false
 	}
 
 	// K/V store next
 	val = v.searchMap(v.kvstore, path)
 	if val != nil {
-		return val
+		return val, true
 	}
 	if nested && v.isPathShadowedInDeepMap(path, v.kvstore) != "" {
-		return nil
+		return nil, false
 	}
 
 	// Default next
 	val = v.searchMap(v.defaults, path)
 	if val != nil {
-		return val
+		return val, true
 	}
 	if nested && v.isPathShadowedInDeepMap(path, v.defaults) != "" {
-		return nil
+		return nil, false
 	}
 
 	// last chance: if no other value is returned and a flag does exist for the value,
@@ -1092,21 +1093,21 @@ func (v *Viper) find(lcaseKey string) interface{} {
 	if flag, exists := v.pflags[lcaseKey]; exists {
 		switch flag.ValueType() {
 		case "int", "int8", "int16", "int32", "int64":
-			return cast.ToInt(flag.ValueString())
+			return cast.ToInt(flag.ValueString()), true
 		case "bool":
-			return cast.ToBool(flag.ValueString())
+			return cast.ToBool(flag.ValueString()), true
 		case "stringSlice":
 			s := strings.TrimPrefix(flag.ValueString(), "[")
 			s = strings.TrimSuffix(s, "]")
 			res, _ := readAsCSV(s)
-			return res
+			return res, true
 		default:
-			return flag.ValueString()
+			return flag.ValueString(), true
 		}
 	}
 	// last item, no need to check shadowing
 
-	return nil
+	return nil, false
 }
 
 func readAsCSV(val string) ([]string, error) {
@@ -1123,8 +1124,8 @@ func readAsCSV(val string) ([]string, error) {
 func IsSet(key string) bool { return v.IsSet(key) }
 func (v *Viper) IsSet(key string) bool {
 	lcaseKey := strings.ToLower(key)
-	val := v.find(lcaseKey)
-	return val != nil
+	_, found := v.find(lcaseKey)
+	return found
 }
 
 // AutomaticEnv has Viper check ENV variables for all.

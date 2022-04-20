@@ -1833,6 +1833,23 @@ empty_dict: {}
 	v.SetKnown("is_known")
 	v.SetDefault("has_default", true)
 
+	// IsSet returns true for empty keys
+	assert.True(t, v.IsSet("key"))
+	assert.True(t, v.IsSet("key.subkey"))
+	assert.False(t, v.IsSet("subkey"))
+	assert.True(t, v.IsSet("another_key"))
+	assert.True(t, v.IsSet("empty_dict"))
+	assert.False(t, v.IsSet("is_known"))
+	assert.True(t, v.IsSet("has_default"))
+
+	// Get still returns nil for empty keys
+	assert.NotNil(t, v.Get("key"))
+	assert.Nil(t, v.Get("key.subkey"))
+	assert.Nil(t, v.Get("another_key"))
+	assert.NotNil(t, v.Get("empty_dict"))
+	assert.Nil(t, v.Get("is_known"))
+	assert.NotNil(t, v.Get("has_default"))
+
 	// AllKeys includes empty keys
 	keys := v.AllKeys()
 	assert.NotContains(t, keys, "key") // Only empty leaf nodes are returned
