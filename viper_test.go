@@ -1809,6 +1809,7 @@ empty_dict: {}
 	initConfig(v, "yaml", yamlWithEnvVars)
 	v.SetKnown("is_known")
 	v.SetDefault("has_default", true)
+	v.BindEnv("is_bound")
 
 	// IsSet returns true for empty keys
 	assert.True(t, v.IsSet("key"))
@@ -1818,6 +1819,7 @@ empty_dict: {}
 	assert.True(t, v.IsSet("empty_dict"))
 	assert.False(t, v.IsSet("is_known"))
 	assert.True(t, v.IsSet("has_default"))
+	assert.False(t, v.IsSet("is_bound"))
 
 	// Get still returns nil for empty keys
 	assert.NotNil(t, v.Get("key"))
@@ -1826,6 +1828,7 @@ empty_dict: {}
 	assert.NotNil(t, v.Get("empty_dict"))
 	assert.Nil(t, v.Get("is_known"))
 	assert.NotNil(t, v.Get("has_default"))
+	assert.Nil(t, v.Get("is_bound"))
 
 	// AllKeys includes empty keys
 	keys := v.AllKeys()
@@ -1835,6 +1838,7 @@ empty_dict: {}
 	assert.Contains(t, keys, "empty_dict")
 	assert.NotContains(t, keys, "is_known")
 	assert.Contains(t, keys, "has_default")
+	assert.NotContains(t, keys, "is_bound")
 
 	// AllSettings includes empty keys
 	vars := v.AllSettings()
@@ -1844,4 +1848,5 @@ empty_dict: {}
 	assert.Contains(t, vars, "empty_dict")
 	assert.NotContains(t, vars, "is_known")
 	assert.Contains(t, vars, "has_default")
+	assert.NotContains(t, vars, "is_bound")
 }
