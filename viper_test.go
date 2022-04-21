@@ -1811,17 +1811,27 @@ empty_dict: {}
 	v.SetDefault("has_default", true)
 	v.BindEnv("is_bound")
 
-	// IsSet returns true for empty keys
+	// IsSet returns true for set and non-null keys
 	assert.True(t, v.IsSet("key"))
-	assert.True(t, v.IsSet("key.subkey"))
+	assert.False(t, v.IsSet("key.subkey")) // for backwards compat, but should be assert.True(t, v.IsSet("key.subkey"))
 	assert.False(t, v.IsSet("subkey"))
-	assert.True(t, v.IsSet("another_key"))
+	assert.False(t, v.IsSet("another_key")) // for backwards compat, but should be assert.True(t, v.IsSet("another_key"))
 	assert.True(t, v.IsSet("empty_dict"))
 	assert.False(t, v.IsSet("is_known"))
 	assert.True(t, v.IsSet("has_default"))
 	assert.False(t, v.IsSet("is_bound"))
 
-	// Get still returns nil for empty keys
+	// IsSetIncludingNull returns true for all set keys
+	assert.True(t, v.IsSetIncludingNull("key"))
+	assert.True(t, v.IsSetIncludingNull("key.subkey"))
+	assert.False(t, v.IsSetIncludingNull("subkey"))
+	assert.True(t, v.IsSetIncludingNull("another_key"))
+	assert.True(t, v.IsSetIncludingNull("empty_dict"))
+	assert.False(t, v.IsSetIncludingNull("is_known"))
+	assert.True(t, v.IsSetIncludingNull("has_default"))
+	assert.False(t, v.IsSetIncludingNull("is_bound"))
+
+	// Get still returns nil for not set and empty/null keys
 	assert.NotNil(t, v.Get("key"))
 	assert.Nil(t, v.Get("key.subkey"))
 	assert.Nil(t, v.Get("another_key"))
@@ -1830,7 +1840,7 @@ empty_dict: {}
 	assert.NotNil(t, v.Get("has_default"))
 	assert.Nil(t, v.Get("is_bound"))
 
-	// AllKeys includes empty keys
+	// AllKeys includes all keys, including empty/null
 	keys := v.AllKeys()
 	assert.NotContains(t, keys, "key") // Only empty leaf nodes are returned
 	assert.Contains(t, keys, "key.subkey")
@@ -1840,7 +1850,7 @@ empty_dict: {}
 	assert.Contains(t, keys, "has_default")
 	assert.NotContains(t, keys, "is_bound")
 
-	// AllSettings includes empty keys
+	// AllSettings includes all keys, including empty/null
 	vars := v.AllSettings()
 	assert.NotContains(t, vars, "key") // Only empty leaf nodes are returned
 	assert.Contains(t, vars, "key.subkey")

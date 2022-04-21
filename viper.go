@@ -1123,6 +1123,15 @@ func readAsCSV(val string) ([]string, error) {
 func IsSet(key string) bool { return v.IsSet(key) }
 func (v *Viper) IsSet(key string) bool {
 	lcaseKey := strings.ToLower(key)
+	val, _ := v.find(lcaseKey)
+	return val != nil
+}
+
+// IsSetIncludingNull checks to see if the key has been set in any of the data locations, even if it's set to null.
+// IsSetIncludingNull is case-insensitive for a key.
+func IsSetIncludingNull(key string) bool { return v.IsSet(key) }
+func (v *Viper) IsSetIncludingNull(key string) bool {
+	lcaseKey := strings.ToLower(key)
 	_, found := v.find(lcaseKey)
 	return found
 }
