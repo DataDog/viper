@@ -120,10 +120,10 @@ type DecoderConfigOption func(*mapstructure.DecoderConfig)
 // DecodeHook returns a DecoderConfigOption which overrides the default
 // DecoderConfig.DecodeHook value, the default is:
 //
-//  mapstructure.ComposeDecodeHookFunc(
-//		mapstructure.StringToTimeDurationHookFunc(),
-//		mapstructure.StringToSliceHookFunc(","),
-//	)
+//	 mapstructure.ComposeDecodeHookFunc(
+//			mapstructure.StringToTimeDurationHookFunc(),
+//			mapstructure.StringToSliceHookFunc(","),
+//		)
 func DecodeHook(hook mapstructure.DecodeHookFunc) DecoderConfigOption {
 	return func(c *mapstructure.DecoderConfig) {
 		c.DecodeHook = hook
@@ -144,18 +144,18 @@ func DecodeHook(hook mapstructure.DecodeHookFunc) DecoderConfigOption {
 //
 // For example, if values from the following sources were loaded:
 //
-//  Defaults : {
-//  	"secret": "",
-//  	"user": "default",
-//  	"endpoint": "https://localhost"
-//  }
-//  Config : {
-//  	"user": "root"
-//  	"secret": "defaultsecret"
-//  }
-//  Env : {
-//  	"secret": "somesecretkey"
-//  }
+//	Defaults : {
+//		"secret": "",
+//		"user": "default",
+//		"endpoint": "https://localhost"
+//	}
+//	Config : {
+//		"user": "root"
+//		"secret": "defaultsecret"
+//	}
+//	Env : {
+//		"secret": "somesecretkey"
+//	}
 //
 // The resulting config will have the following values:
 //
@@ -510,7 +510,8 @@ func (v *Viper) searchMapWithPathPrefixes(source map[string]interface{}, path []
 // isPathShadowedInDeepMap makes sure the given path is not shadowed somewhere
 // on its path in the map.
 // e.g., if "foo.bar" has a value in the given map, it “shadows”
-//       "foo.bar.baz" in a lower-priority map
+//
+//	"foo.bar.baz" in a lower-priority map
 func (v *Viper) isPathShadowedInDeepMap(path []string, m map[string]interface{}) string {
 	var parentVal interface{}
 	for i := 1; i < len(path); i++ {
@@ -535,7 +536,8 @@ func (v *Viper) isPathShadowedInDeepMap(path []string, m map[string]interface{})
 // isPathShadowedInFlatMap makes sure the given path is not shadowed somewhere
 // in a sub-path of the map.
 // e.g., if "foo.bar" has a value in the given map, it “shadows”
-//       "foo.bar.baz" in a lower-priority map
+//
+//	"foo.bar.baz" in a lower-priority map
 func (v *Viper) isPathShadowedInFlatMap(path []string, mi interface{}) string {
 	// unify input map
 	var m map[string]interface{}
@@ -560,7 +562,8 @@ func (v *Viper) isPathShadowedInFlatMap(path []string, mi interface{}) string {
 // isPathShadowedInAutoEnv makes sure the given path is not shadowed somewhere
 // in the environment, when automatic env is on.
 // e.g., if "foo.bar" has a value in the environment, it “shadows”
-//       "foo.bar.baz" in a lower-priority map
+//
+//	"foo.bar.baz" in a lower-priority map
 func (v *Viper) isPathShadowedInAutoEnv(path []string) string {
 	var parentKey string
 	for i := 1; i < len(path); i++ {
@@ -581,11 +584,11 @@ func (v *Viper) isPathShadowedInAutoEnv(path []string) string {
 // would return a string slice for the key if the key's type is inferred by
 // the default value and the Get function would return:
 //
-//   []string {"a", "b", "c"}
+//	[]string {"a", "b", "c"}
 //
 // Otherwise the Get function would return:
 //
-//   "a b c"
+//	"a b c"
 func SetTypeByDefaultValue(enable bool) { v.SetTypeByDefaultValue(enable) }
 func (v *Viper) SetTypeByDefaultValue(enable bool) {
 	v.typeByDefValue = enable
@@ -941,9 +944,8 @@ func (v *Viper) BindPFlags(flags *pflag.FlagSet) error {
 // BindPFlag binds a specific key to a pflag (as used by cobra).
 // Example (where serverCmd is a Cobra instance):
 //
-//	 serverCmd.Flags().Int("port", 1138, "Port to run Application server on")
-//	 Viper.BindPFlag("port", serverCmd.Flags().Lookup("port"))
-//
+//	serverCmd.Flags().Int("port", 1138, "Port to run Application server on")
+//	Viper.BindPFlag("port", serverCmd.Flags().Lookup("port"))
 func BindPFlag(key string, flag *pflag.Flag) error { return v.BindPFlag(key, flag) }
 func (v *Viper) BindPFlag(key string, flag *pflag.Flag) error {
 	return v.BindFlagValue(key, pflagValue{flag})
@@ -964,9 +966,8 @@ func (v *Viper) BindFlagValues(flags FlagValueSet) (err error) {
 // BindFlagValue binds a specific key to a FlagValue.
 // Example (where serverCmd is a Cobra instance):
 //
-//	 serverCmd.Flags().Int("port", 1138, "Port to run Application server on")
-//	 Viper.BindFlagValue("port", serverCmd.Flags().Lookup("port"))
-//
+//	serverCmd.Flags().Int("port", 1138, "Port to run Application server on")
+//	Viper.BindFlagValue("port", serverCmd.Flags().Lookup("port"))
 func BindFlagValue(key string, flag FlagValue) error { return v.BindFlagValue(key, flag) }
 func (v *Viper) BindFlagValue(key string, flag FlagValue) error {
 	if flag == nil {
@@ -1001,13 +1002,7 @@ func (v *Viper) BindEnv(input ...string) error {
 	return nil
 }
 
-// Given a key, find the value.
-// Viper will check in the following order:
-// flag, env, config file, key/value store, default.
-// If skipDefault is set to true, find will ignore default values.
-// Viper will check to see if an alias exists first.
-// Note: this assumes a lower-cased key given.
-func (v *Viper) find(lcaseKey string, skipDefault bool) interface{} {
+func (v *Viper) findExact(lcaseKey string, skipDefault bool) interface{} {
 
 	var (
 		val    interface{}
@@ -1020,11 +1015,6 @@ func (v *Viper) find(lcaseKey string, skipDefault bool) interface{} {
 	if nested && v.isPathShadowedInDeepMap(path, castMapStringToMapInterface(v.aliases)) != "" {
 		return nil
 	}
-
-	// if the requested key is an alias, then return the proper key
-	lcaseKey = v.realKey(lcaseKey)
-	path = strings.Split(lcaseKey, v.keyDelim)
-	nested = len(path) > 1
 
 	// Set() override first
 	val = v.searchMap(v.override, path)
@@ -1131,6 +1121,23 @@ func (v *Viper) find(lcaseKey string, skipDefault bool) interface{} {
 	// last item, no need to check shadowing
 
 	return nil
+}
+
+// Given a key, find the value.
+// Viper will check in the following order:
+// flag, env, config file, key/value store, default.
+// If skipDefault is set to true, find will ignore default values.
+// Viper will check to see if an alias exists first.
+// Note: this assumes a lower-cased key given.
+func (v *Viper) find(lcaseKey string, skipDefault bool) interface{} {
+
+	if val := v.findExact(lcaseKey, skipDefault); val != nil {
+		return val
+	}
+
+	// if the requested key is an alias, then return the proper key
+	lcaseKey = v.realKey(lcaseKey)
+	return v.findExact(lcaseKey, skipDefault)
 }
 
 func readAsCSV(val string) ([]string, error) {
@@ -1784,9 +1791,10 @@ func (v *Viper) AllKeys() []string {
 
 // flattenAndMergeMap recursively flattens the given map into a map[string]bool
 // of key paths (used as a set, easier to manipulate than a []string):
-// - each path is merged into a single key string, delimited with v.keyDelim (= ".")
-// - if a path is shadowed by an earlier value in the initial shadow map,
-//   it is skipped.
+//   - each path is merged into a single key string, delimited with v.keyDelim (= ".")
+//   - if a path is shadowed by an earlier value in the initial shadow map,
+//     it is skipped.
+//
 // The resulting set of paths is merged to the given shadow set at the same time.
 func (v *Viper) flattenAndMergeMap(shadow map[string]bool, m map[string]interface{}, prefix string) map[string]bool {
 	if shadow != nil && prefix != "" && shadow[prefix] {
