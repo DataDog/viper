@@ -1012,7 +1012,7 @@ func (v *Viper) BindEnv(input ...string) error {
 	return nil
 }
 
-// findFromSet find a key from override (ie: from 'Set()')
+// findFromOverride finds a key from override (ie: from 'Set()')
 func (v *Viper) findFromOverride(_ string, path []string, nested bool) (interface{}, bool) {
 	if val := v.searchMap(v.override, path); val != nil {
 		return val, true
