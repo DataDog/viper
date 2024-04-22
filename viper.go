@@ -869,9 +869,6 @@ func (v *Viper) UnmarshalKey(key string, rawVal interface{}, opts ...DecoderConf
 	// We first get all value we have for a key (from default to override)
 	lcaseKey := strings.ToLower(key)
 	values := v.findAll(lcaseKey)
-	if values == nil {
-		return nil
-	}
 
 	// findAll returns all the value for a settings from highest priority to lowest. So when aggregating them we want
 	// to start at the lowest priority and override with higher ones.
@@ -1169,14 +1166,12 @@ func (v *Viper) find(lcaseKey string, skipDefault bool) interface{} {
 		v.findFromKVStore,
 	}
 
-	for _, getter := range getters {
-		if val, found := getter(lcaseKey, path, nested); found {
-			return val
-		}
+	if !skipDefault {
+		getters = append(getters, v.findFromDefault)
 	}
 
-	if !skipDefault {
-		if val, found := v.findFromDefault(lcaseKey, path, nested); found {
+	for _, getter := range getters {
+		if val, found := getter(lcaseKey, path, nested); found {
 			return val
 		}
 	}
