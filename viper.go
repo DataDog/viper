@@ -199,6 +199,9 @@ type Viper struct {
 	knownKeys      map[string]interface{}
 	typeByDefValue bool
 
+	allSettingsVal   map[string]interface{}
+	allSettingsClean bool
+
 	// Store read properties on the object so that we can write back in order with comments.
 	// This will only be used if the configuration read is a properties file.
 	properties *properties.Properties
@@ -1239,11 +1242,17 @@ func (v *Viper) InConfig(key string) bool {
 	return exists
 }
 
+func (v *Viper) markAllSettingsDirty() {
+	v.allSettingsClean = false
+}
+
 // SetDefault sets the default value for this key.
 // SetDefault is case-insensitive for a key.
 // Default only used when no value is provided by the user via flag, config or ENV.
 func SetDefault(key string, value interface{}) { v.SetDefault(key, value) }
 func (v *Viper) SetDefault(key string, value interface{}) {
+	v.markAllSettingsDirty()
+
 	// If alias passed in, then set the proper default
 	key = v.realKey(strings.ToLower(key))
 	value = toCaseInsensitiveValue(value)
@@ -1293,6 +1302,8 @@ func (v *Viper) IsKnown(key string) bool {
 // flags, config file, ENV, default, or key/value store.
 func Set(key string, value interface{}) { v.Set(key, value) }
 func (v *Viper) Set(key string, value interface{}) {
+	v.markAllSettingsDirty()
+
 	// If alias passed in, then set the proper override
 	key = v.realKey(strings.ToLower(key))
 	value = toCaseInsensitiveValue(value)
@@ -1309,6 +1320,8 @@ func (v *Viper) Set(key string, value interface{}) {
 // and key/value stores, searching in one of the defined paths.
 func ReadInConfig() error { return v.ReadInConfig() }
 func (v *Viper) ReadInConfig() error {
+	v.markAllSettingsDirty()
+
 	jww.INFO.Println("Attempting to read in config file")
 	filename, err := v.getConfigFile()
 	if err != nil {
@@ -1339,6 +1352,8 @@ func (v *Viper) ReadInConfig() error {
 // MergeInConfig merges a new configuration with an existing config.
 func MergeInConfig() error { return v.MergeInConfig() }
 func (v *Viper) MergeInConfig() error {
+	v.markAllSettingsDirty()
+
 	jww.INFO.Println("Attempting to merge in config file")
 	filename, err := v.getConfigFile()
 	if err != nil {
@@ -1361,6 +1376,7 @@ func (v *Viper) MergeInConfig() error {
 // key does not exist in the file.
 func ReadConfig(in io.Reader) error { return v.ReadConfig(in) }
 func (v *Viper) ReadConfig(in io.Reader) error {
+	v.markAllSettingsDirty()
 	v.config = make(map[string]interface{})
 	return v.unmarshalReader(in, v.config)
 }
@@ -1368,6 +1384,7 @@ func (v *Viper) ReadConfig(in io.Reader) error {
 // MergeConfig merges a new configuration with an existing config.
 func MergeConfig(in io.Reader) error { return v.MergeConfig(in) }
 func (v *Viper) MergeConfig(in io.Reader) error {
+	v.markAllSettingsDirty()
 	cfg := make(map[string]interface{})
 	if err := v.unmarshalReader(in, cfg); err != nil {
 		return err
@@ -1379,6 +1396,7 @@ func (v *Viper) MergeConfig(in io.Reader) error {
 // Note that the map given may be modified.
 func MergeConfigMap(cfg map[string]interface{}) error { return v.MergeConfigMap(cfg) }
 func (v *Viper) MergeConfigMap(cfg map[string]interface{}) error {
+	v.markAllSettingsDirty()
 	if v.config == nil {
 		v.config = make(map[string]interface{})
 	}
@@ -1392,6 +1410,7 @@ func (v *Viper) MergeConfigMap(cfg map[string]interface{}) error {
 // always be retrieved before values from env, files...
 func MergeConfigOverride(in io.Reader) error { return v.MergeConfigOverride(in) }
 func (v *Viper) MergeConfigOverride(in io.Reader) error {
+	v.markAllSettingsDirty()
 	if v.override == nil {
 		v.override = make(map[string]interface{})
 	}
@@ -1866,7 +1885,12 @@ outer:
 // AllSettings merges all settings and returns them as a map[string]interface{}.
 func AllSettings() map[string]interface{} { return v.AllSettings() }
 func (v *Viper) AllSettings() map[string]interface{} {
-	return v.allSettings(v.Get)
+	if !v.allSettingsClean {
+		v.allSettingsClean = true
+		v.allSettingsVal = v.allSettings(v.Get)
+	}
+	return v.allSettingsVal
+
 }
 
 // AllSettingsWithoutDefault merges all settings and returns them as a map[string]interface{}.
