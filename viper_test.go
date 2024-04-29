@@ -184,7 +184,6 @@ func initHcl(v *Viper) {
 
 // make directories for testing
 func initDirs(t *testing.T) (string, string, func()) {
-
 	var (
 		testDirs = []string{`a a`, `b`, `c\c`, `D_`}
 		config   = `improbable`
@@ -206,13 +205,13 @@ func initDirs(t *testing.T) (string, string, func()) {
 	assert.Nil(t, err)
 
 	for _, dir := range testDirs {
-		err = os.Mkdir(dir, 0750)
+		err = os.Mkdir(dir, 0o750)
 		assert.Nil(t, err)
 
 		err = ioutil.WriteFile(
 			path.Join(dir, config+".toml"),
 			[]byte("key = \"value is "+dir+"\"\n"),
-			0640)
+			0o640)
 		assert.Nil(t, err)
 	}
 
@@ -223,7 +222,7 @@ func initDirs(t *testing.T) (string, string, func()) {
 	}
 }
 
-//stubs for PFlag Values
+// stubs for PFlag Values
 type stringValue string
 
 func newStringValue(val string, p *string) *stringValue {
@@ -517,7 +516,7 @@ func TestAllKeys(t *testing.T) {
 
 	ks := sort.StringSlice{"title", "newkey", "owner.organization", "owner.dob", "owner.bio", "name", "beard", "ppu", "batters.batter", "hobbies", "clothing.jacket", "clothing.trousers", "clothing.pants.size", "age", "hacker", "id", "type", "eyes", "p_id", "p_ppu", "p_batters.batter.type", "p_type", "p_name", "foos"}
 	dob, _ := time.Parse(time.RFC3339, "1979-05-27T07:32:00Z")
-	all := map[string]interface{}{"owner": map[string]interface{}{"organization": "MongoDB", "bio": "MongoDB Chief Developer Advocate & Hacker at Large", "dob": dob}, "title": "TOML Example", "ppu": 0.55, "eyes": "brown", "clothing": map[string]interface{}{"trousers": "denim", "jacket": "leather", "pants": map[string]interface{}{"size": "large"}}, "id": "0001", "batters": map[string]interface{}{"batter": []interface{}{map[string]interface{}{"type": "Regular"}, map[string]interface{}{"type": "Chocolate"}, map[string]interface{}{"type": "Blueberry"}, map[string]interface{}{"type": "Devil's Food"}}}, "hacker": true, "beard": true, "hobbies": []interface{}{"skateboarding", "snowboarding", "go"}, "age": 35, "type": "donut", "newkey": "remote", "name": "Cake", "p_id": "0001", "p_ppu": "0.55", "p_name": "Cake", "p_batters": map[string]interface{}{"batter": map[string]interface{}{"type": "Regular"}}, "p_type": "donut", "foos": []map[string]interface{}{map[string]interface{}{"foo": []map[string]interface{}{map[string]interface{}{"key": 1}, map[string]interface{}{"key": 2}, map[string]interface{}{"key": 3}, map[string]interface{}{"key": 4}}}}}
+	all := map[string]interface{}{"owner": map[string]interface{}{"organization": "MongoDB", "bio": "MongoDB Chief Developer Advocate & Hacker at Large", "dob": dob}, "title": "TOML Example", "ppu": 0.55, "eyes": "brown", "clothing": map[string]interface{}{"trousers": "denim", "jacket": "leather", "pants": map[string]interface{}{"size": "large"}}, "id": "0001", "batters": map[string]interface{}{"batter": []interface{}{map[string]interface{}{"type": "Regular"}, map[string]interface{}{"type": "Chocolate"}, map[string]interface{}{"type": "Blueberry"}, map[string]interface{}{"type": "Devil's Food"}}}, "hacker": true, "beard": true, "hobbies": []interface{}{"skateboarding", "snowboarding", "go"}, "age": 35, "type": "donut", "newkey": "remote", "name": "Cake", "p_id": "0001", "p_ppu": "0.55", "p_name": "Cake", "p_batters": map[string]interface{}{"batter": map[string]interface{}{"type": "Regular"}}, "p_type": "donut", "foos": []map[string]interface{}{{"foo": []map[string]interface{}{{"key": 1}, {"key": 2}, {"key": 3}, {"key": 4}}}}}
 
 	var allkeys sort.StringSlice
 	allkeys = v.AllKeys()
@@ -697,13 +696,13 @@ func TestBindPFlags(t *testing.T) {
 	v := New() // create independent Viper object
 	flagSet := pflag.NewFlagSet("test", pflag.ContinueOnError)
 
-	var testValues = map[string]*string{
+	testValues := map[string]*string{
 		"host":     nil,
 		"port":     nil,
 		"endpoint": nil,
 	}
 
-	var mutatedTestValues = map[string]string{
+	mutatedTestValues := map[string]string{
 		"host":     "localhost",
 		"port":     "6060",
 		"endpoint": "/public",
@@ -726,7 +725,6 @@ func TestBindPFlags(t *testing.T) {
 	for name, expected := range mutatedTestValues {
 		assert.Equal(t, expected, v.Get(name))
 	}
-
 }
 
 func TestBindPFlagsStringSlice(t *testing.T) {
@@ -778,8 +776,8 @@ func TestBindPFlagsStringSlice(t *testing.T) {
 func TestBindPFlag(t *testing.T) {
 	v := New()
 
-	var testString = "testing"
-	var testValue = newStringValue(testString, &testString)
+	testString := "testing"
+	testValue := newStringValue(testString, &testString)
 
 	flag := &pflag.Flag{
 		Name:    "testflag",
@@ -792,10 +790,9 @@ func TestBindPFlag(t *testing.T) {
 	assert.Equal(t, testString, v.Get("testvalue"))
 
 	flag.Value.Set("testing_mutate")
-	flag.Changed = true //hack for pflag usage
+	flag.Changed = true // hack for pflag usage
 
 	assert.Equal(t, "testing_mutate", v.Get("testvalue"))
-
 }
 
 func TestBoundCaseSensitivity(t *testing.T) {
@@ -809,8 +806,8 @@ func TestBoundCaseSensitivity(t *testing.T) {
 
 	assert.Equal(t, "blue", v.Get("eyes"))
 
-	var testString = "green"
-	var testValue = newStringValue(testString, &testString)
+	testString := "green"
+	testValue := newStringValue(testString, &testString)
 
 	flag := &pflag.Flag{
 		Name:    "eyeballs",
@@ -820,7 +817,6 @@ func TestBoundCaseSensitivity(t *testing.T) {
 
 	v.BindPFlag("eYEs", flag)
 	assert.Equal(t, "green", v.Get("eyes"))
-
 }
 
 func TestSizeInBytes(t *testing.T) {
@@ -893,9 +889,11 @@ func TestFindsNestedKeys(t *testing.T) {
 				},
 				map[string]interface{}{
 					"type": "Chocolate",
-				}, map[string]interface{}{
+				},
+				map[string]interface{}{
 					"type": "Blueberry",
-				}, map[string]interface{}{
+				},
+				map[string]interface{}{
 					"type": "Devil's Food",
 				},
 			},
@@ -926,18 +924,18 @@ func TestFindsNestedKeys(t *testing.T) {
 		"owner.dob":           dob,
 		"beard":               true,
 		"foos": []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"foo": []map[string]interface{}{
-					map[string]interface{}{
+					{
 						"key": 1,
 					},
-					map[string]interface{}{
+					{
 						"key": 2,
 					},
-					map[string]interface{}{
+					{
 						"key": 3,
 					},
-					map[string]interface{}{
+					{
 						"key": 4,
 					},
 				},
@@ -946,10 +944,8 @@ func TestFindsNestedKeys(t *testing.T) {
 	}
 
 	for key, expectedValue := range expected {
-
 		assert.Equal(t, expectedValue, v.Get(key))
 	}
-
 }
 
 func TestReadBufConfig(t *testing.T) {
@@ -978,7 +974,6 @@ func TestIsSet(t *testing.T) {
 }
 
 func TestDirsSearch(t *testing.T) {
-
 	root, config, cleanup := initDirs(t)
 	defer cleanup()
 
@@ -1000,7 +995,6 @@ func TestDirsSearch(t *testing.T) {
 }
 
 func TestWrongDirsSearchNotFound(t *testing.T) {
-
 	_, config, cleanup := initDirs(t)
 	defer cleanup()
 
@@ -1027,7 +1021,7 @@ func TestNoPermissionDirs(t *testing.T) {
 
 	// Make an fs with an un-readable /directory
 	v.fs = afero.NewBasePathFs(afero.NewOsFs(), tmpdir)
-	err := v.fs.Mkdir("/directory", 000)
+	err := v.fs.Mkdir("/directory", 0o00)
 	if err != nil {
 		t.Fatalf("Error from fs.Mkdir: %v", err)
 	}
@@ -1045,7 +1039,6 @@ func TestNoPermissionDirs(t *testing.T) {
 }
 
 func TestWrongDirsSearchNotFoundForMerge(t *testing.T) {
-
 	_, config, cleanup := initDirs(t)
 	defer cleanup()
 
@@ -1491,7 +1484,6 @@ func TestMergeConfigMap(t *testing.T) {
 	}
 
 	assert(1234)
-
 }
 
 func TestUnmarshalingWithAliases(t *testing.T) {
@@ -1531,7 +1523,6 @@ func TestSetConfigNameClearsFileCache(t *testing.T) {
 }
 
 func TestShadowedNestedValue(t *testing.T) {
-
 	config := `name: steve
 clothing:
   jacket: leather
@@ -1618,18 +1609,18 @@ func TestCaseInsensitiveSet(t *testing.T) {
 	v := New()
 	m1 := map[string]interface{}{
 		"Foo": 32,
-		"Bar": map[interface{}]interface {
-		}{
+		"Bar": map[interface{}]interface{}{
 			"ABc": "A",
-			"cDE": "B"},
+			"cDE": "B",
+		},
 	}
 
 	m2 := map[string]interface{}{
 		"Foo": 52,
-		"Bar": map[interface{}]interface {
-		}{
+		"Bar": map[interface{}]interface{}{
 			"bCd": "A",
-			"eFG": "B"},
+			"eFG": "B",
+		},
 	}
 
 	v.Set("Given1", m1)
@@ -1757,14 +1748,13 @@ func doTestCaseInsensitive(t *testing.T, typ, config string) {
 	assert.Equal(t, 3, cast.ToInt(v.Get("ef.ijk")))
 	assert.Equal(t, 4, cast.ToInt(v.Get("ef.lm.no")))
 	assert.Equal(t, 5, cast.ToInt(v.Get("ef.lm.p.q")))
-
 }
 
 func newViperWithConfigFile(t *testing.T) (*Viper, string, func()) {
 	watchDir, err := ioutil.TempDir("", "")
 	require.Nil(t, err)
 	configFile := path.Join(watchDir, "config.yaml")
-	err = ioutil.WriteFile(configFile, []byte("foo: bar\n"), 0640)
+	err = ioutil.WriteFile(configFile, []byte("foo: bar\n"), 0o640)
 	require.Nil(t, err)
 	cleanup := func() {
 		os.RemoveAll(watchDir)
@@ -1781,11 +1771,11 @@ func newViperWithSymlinkedConfigFile(t *testing.T) (*Viper, string, string, func
 	watchDir, err := ioutil.TempDir("", "")
 	require.Nil(t, err)
 	dataDir1 := path.Join(watchDir, "data1")
-	err = os.Mkdir(dataDir1, 0777)
+	err = os.Mkdir(dataDir1, 0o777)
 	require.Nil(t, err)
 	realConfigFile := path.Join(dataDir1, "config.yaml")
 	t.Logf("Real config file location: %s\n", realConfigFile)
-	err = ioutil.WriteFile(realConfigFile, []byte("foo: bar\n"), 0640)
+	err = ioutil.WriteFile(realConfigFile, []byte("foo: bar\n"), 0o640)
 	require.Nil(t, err)
 	cleanup := func() {
 		os.RemoveAll(watchDir)
@@ -1826,7 +1816,7 @@ func TestWatchFile(t *testing.T) {
 		})
 		v.WatchConfig()
 		// when overwriting the file and waiting for the custom change notification handler to be triggered
-		err = ioutil.WriteFile(configFile, []byte("foo: baz\n"), 0640)
+		err = ioutil.WriteFile(configFile, []byte("foo: baz\n"), 0o640)
 		wg.Wait()
 		// then the config value should have changed
 		require.Nil(t, err)
@@ -1849,10 +1839,10 @@ func TestWatchFile(t *testing.T) {
 		wg.Add(1)
 		// when link to another `config.yaml` file
 		dataDir2 := path.Join(watchDir, "data2")
-		err := os.Mkdir(dataDir2, 0777)
+		err := os.Mkdir(dataDir2, 0o777)
 		require.Nil(t, err)
 		configFile2 := path.Join(dataDir2, "config.yaml")
-		err = ioutil.WriteFile(configFile2, []byte("foo: baz\n"), 0640)
+		err = ioutil.WriteFile(configFile2, []byte("foo: baz\n"), 0o640)
 		require.Nil(t, err)
 		// change the symlink using the `ln -sfn` command
 		err = exec.Command("ln", "-sfn", dataDir2, path.Join(watchDir, "data")).Run()
@@ -1862,7 +1852,6 @@ func TestWatchFile(t *testing.T) {
 		require.Nil(t, err)
 		assert.Equal(t, "baz", v.Get("foo"))
 	})
-
 }
 
 func BenchmarkGetBool(b *testing.B) {
