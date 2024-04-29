@@ -195,7 +195,6 @@ type Viper struct {
 	pflags         map[string]FlagValue
 	env            map[string][]string
 	envTransform   map[string]func(string) interface{}
-	aliases        map[string]string
 	knownKeys      map[string]interface{}
 	typeByDefValue bool
 
@@ -219,7 +218,6 @@ func New() *Viper {
 	v.pflags = make(map[string]FlagValue)
 	v.env = make(map[string][]string)
 	v.envTransform = make(map[string]func(string) interface{})
-	v.aliases = make(map[string]string)
 	v.knownKeys = make(map[string]interface{})
 	v.typeByDefValue = false
 
@@ -1074,13 +1072,7 @@ func (v *Viper) find(lcaseKey string, skipDefault bool) interface{} {
 		nested = len(path) > 1
 	)
 
-	// compute the path through the nested maps to the nested value
-	if nested && v.isPathShadowedInDeepMap(path, castMapStringToMapInterface(v.aliases)) != "" {
-		return nil
-	}
-
 	// if the requested key is an alias, then return the proper key
-	lcaseKey = v.realKey(lcaseKey)
 	path = strings.Split(lcaseKey, v.keyDelim)
 	nested = len(path) > 1
 
@@ -1227,63 +1219,10 @@ func (v *Viper) SetEnvKeyReplacer(r *strings.Replacer) {
 	v.envKeyReplacer = r
 }
 
-// Aliases provide another accessor for the same key.
-// This enables one to change a name without breaking the application
-func RegisterAlias(alias string, key string) { v.RegisterAlias(alias, key) }
-
-func (v *Viper) RegisterAlias(alias string, key string) {
-	v.registerAlias(alias, strings.ToLower(key))
-}
-
-func (v *Viper) registerAlias(alias string, key string) {
-	alias = strings.ToLower(alias)
-	if alias != key && alias != v.realKey(key) {
-		_, exists := v.aliases[alias]
-
-		if !exists {
-			// if we alias something that exists in one of the maps to another
-			// name, we'll never be able to get that value using the original
-			// name, so move the config value to the new realkey.
-			if val, ok := v.config[alias]; ok {
-				delete(v.config, alias)
-				v.config[key] = val
-			}
-			if val, ok := v.kvstore[alias]; ok {
-				delete(v.kvstore, alias)
-				v.kvstore[key] = val
-			}
-			if val, ok := v.defaults[alias]; ok {
-				delete(v.defaults, alias)
-				v.defaults[key] = val
-			}
-			if val, ok := v.override[alias]; ok {
-				delete(v.override, alias)
-				v.override[key] = val
-			}
-			v.aliases[alias] = key
-		}
-	} else {
-		jww.WARN.Println("Creating circular reference alias", alias, key, v.realKey(key))
-	}
-	v.SetKnown(alias)
-}
-
-func (v *Viper) realKey(key string) string {
-	newkey, exists := v.aliases[key]
-	if exists {
-		jww.DEBUG.Println("Alias", key, "to", newkey)
-		return v.realKey(newkey)
-	}
-	return key
-}
-
 // InConfig checks to see if the given key (or an alias) is in the config file.
 func InConfig(key string) bool { return v.InConfig(key) }
 
 func (v *Viper) InConfig(key string) bool {
-	// if the requested key is an alias, then return the proper key
-	key = v.realKey(key)
-
 	_, exists := v.config[key]
 	return exists
 }
@@ -1294,8 +1233,6 @@ func (v *Viper) InConfig(key string) bool {
 func SetDefault(key string, value interface{}) { v.SetDefault(key, value) }
 
 func (v *Viper) SetDefault(key string, value interface{}) {
-	// If alias passed in, then set the proper default
-	key = v.realKey(strings.ToLower(key))
 	value = toCaseInsensitiveValue(value)
 
 	path := strings.Split(key, v.keyDelim)
@@ -1347,8 +1284,6 @@ func (v *Viper) IsKnown(key string) bool {
 func Set(key string, value interface{}) { v.Set(key, value) }
 
 func (v *Viper) Set(key string, value interface{}) {
-	// If alias passed in, then set the proper override
-	key = v.realKey(strings.ToLower(key))
 	value = toCaseInsensitiveValue(value)
 
 	path := strings.Split(key, v.keyDelim)
@@ -1858,7 +1793,6 @@ func AllKeys() []string { return v.AllKeys() }
 func (v *Viper) AllKeys() []string {
 	m := map[string]bool{}
 	// add all paths, by order of descending priority to ensure correct shadowing
-	m = v.flattenAndMergeMap(m, castMapStringToMapInterface(v.aliases), "")
 	m = v.flattenAndMergeMap(m, v.override, "")
 	m = v.mergeFlatMap(m, castMapFlagToMapInterface(v.pflags))
 	m = v.mergeFlatMap(m, castMapStringSliceToMapInterface(v.env))
@@ -2085,7 +2019,6 @@ func (v *Viper) findConfigFile() (string, error) {
 func Debug() { v.Debug() }
 
 func (v *Viper) Debug() {
-	fmt.Printf("Aliases:\n%#v\n", v.aliases)
 	fmt.Printf("Override:\n%#v\n", v.override)
 	fmt.Printf("PFlags:\n%#v\n", v.pflags)
 	fmt.Printf("Env:\n%#v\n", v.env)

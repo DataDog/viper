@@ -307,26 +307,6 @@ func TestDefaultPost(t *testing.T) {
 	assert.Equal(t, "NYC", v.Get("state"))
 }
 
-func TestAliases(t *testing.T) {
-	v := New()
-	initYAML(v)
-	v.RegisterAlias("years", "age")
-	assert.Equal(t, 35, v.Get("years"))
-	v.Set("years", 45)
-	assert.Equal(t, 45, v.Get("age"))
-}
-
-func TestAliasInConfigFile(t *testing.T) {
-	v := New()
-	initYAML(v)
-	// the config file specifies "beard".  If we make this an alias for
-	// "hasbeard", we still want the old config file to work with beard.
-	v.RegisterAlias("beard", "hasbeard")
-	assert.Equal(t, true, v.Get("hasbeard"))
-	v.Set("hasbeard", false)
-	assert.Equal(t, false, v.Get("beard"))
-}
-
 func TestYML(t *testing.T) {
 	v := New()
 	initYAML(v)
@@ -610,20 +590,6 @@ clothing.winter:
 
 	assert.Equal(t, expectedKeys, keys)
 	assert.Equal(t, expectedAll, v.AllSettingsWithoutDefault())
-}
-
-func TestAliasesOfAliases(t *testing.T) {
-	v := New()
-	v.Set("Title", "Checking Case")
-	v.RegisterAlias("Foo", "Bar")
-	v.RegisterAlias("Bar", "Title")
-	assert.Equal(t, "Checking Case", v.Get("FOO"))
-}
-
-func TestRecursiveAliases(t *testing.T) {
-	v := New()
-	v.RegisterAlias("Baz", "Roo")
-	v.RegisterAlias("Roo", "baz")
 }
 
 func TestUnmarshal(t *testing.T) {
@@ -1486,31 +1452,6 @@ func TestMergeConfigMap(t *testing.T) {
 	assert(1234)
 }
 
-func TestUnmarshalingWithAliases(t *testing.T) {
-	v := New()
-	v.SetDefault("ID", 1)
-	v.Set("name", "Steve")
-	v.Set("lastname", "Owen")
-
-	v.RegisterAlias("UserID", "ID")
-	v.RegisterAlias("Firstname", "name")
-	v.RegisterAlias("Surname", "lastname")
-
-	type config struct {
-		ID        int
-		FirstName string
-		Surname   string
-	}
-
-	var C config
-	err := v.Unmarshal(&C)
-	if err != nil {
-		t.Fatalf("unable to decode into struct, %v", err)
-	}
-
-	assert.Equal(t, &config{ID: 1, FirstName: "Steve", Surname: "Owen"}, &C)
-}
-
 func TestSetConfigNameClearsFileCache(t *testing.T) {
 	v := New()
 	v.SetConfigFile("/tmp/config.yaml")
@@ -1900,10 +1841,6 @@ func TestKnownKeys(t *testing.T) {
 	v.BindEnv("bind", "my_env_var")
 	if _, ok := v.GetKnownKeys()["bind"]; !ok {
 		t.Error("BindEnv didn't mark key as known")
-	}
-	v.RegisterAlias("my_alias", "key")
-	if _, ok := v.GetKnownKeys()["my_alias"]; !ok {
-		t.Error("RegisterAlias didn't mark alias as known")
 	}
 	v.SetKnown("known")
 	if _, ok := v.GetKnownKeys()["known"]; !ok {
