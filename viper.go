@@ -870,25 +870,27 @@ func UnmarshalKey(key string, rawVal interface{}, opts ...DecoderConfigOption) e
 func (v *Viper) UnmarshalKey(key string, rawVal interface{}, opts ...DecoderConfigOption) error {
 	lcaseKey := strings.ToLower(key)
 
-	complexObjects := map[reflect.Kind]struct{}{
-		reflect.Struct:        {},
-		reflect.Map:           {},
-		reflect.Interface:     {},
-		reflect.Ptr:           {},
-		reflect.UnsafePointer: {},
-	}
+	//complexObjects := map[reflect.Kind]struct{}{
+	//	reflect.Struct:        {},
+	//	reflect.Map:           {},
+	//	reflect.Interface:     {},
+	//	reflect.Ptr:           {},
+	//	reflect.UnsafePointer: {},
+	//}
 
-	// for most types there is no need to try merging values from different sources
-	valTy := reflect.TypeOf(rawVal).Kind()
-	if valTy == reflect.Ptr {
-		valTy = reflect.TypeOf(rawVal).Elem().Kind()
-	}
-	if _, ok := complexObjects[valTy]; !ok {
-		return decode(v.Get(lcaseKey), defaultDecoderConfig(rawVal, opts...))
-	}
+	//// for most types there is no need to try merging values from different sources
+	//valTy := reflect.TypeOf(rawVal).Kind()
+	//if valTy == reflect.Ptr {
+	//	valTy = reflect.TypeOf(rawVal).Elem().Kind()
+	//}
+	//if _, ok := complexObjects[valTy]; !ok {
+	//	return decode(v.Get(lcaseKey), defaultDecoderConfig(rawVal, opts...))
+	//}
 
 	// AllSettings returns settings from every sources merged into one tree
+	t0 := time.Now()
 	settings := v.AllSettings()
+	fmt.Printf("getting '%s': %v\n", key, time.Now().Sub(t0))
 
 	keyParts := strings.Split(lcaseKey, v.keyDelim)
 	for i := 0; i < len(keyParts)-1; i++ {
@@ -969,6 +971,7 @@ func (v *Viper) UnmarshalExact(rawVal interface{}) error {
 // name as the config key.
 func BindPFlags(flags *pflag.FlagSet) error { return v.BindPFlags(flags) }
 func (v *Viper) BindPFlags(flags *pflag.FlagSet) error {
+	v.markAllSettingsDirty()
 	return v.BindFlagValues(pflagValueSet{flags})
 }
 
