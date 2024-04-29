@@ -890,7 +890,7 @@ func (v *Viper) UnmarshalKey(key string, rawVal interface{}, opts ...DecoderConf
 	// AllSettings returns settings from every sources merged into one tree
 	t0 := time.Now()
 	settings := v.AllSettings()
-	fmt.Printf("getting '%s': %v\n", key, time.Now().Sub(t0))
+	fmt.Fprintf(os.Stderr, "getting '%s': %v\n", key, time.Now().Sub(t0))
 
 	keyParts := strings.Split(lcaseKey, v.keyDelim)
 	for i := 0; i < len(keyParts)-1; i++ {
@@ -971,7 +971,6 @@ func (v *Viper) UnmarshalExact(rawVal interface{}) error {
 // name as the config key.
 func BindPFlags(flags *pflag.FlagSet) error { return v.BindPFlags(flags) }
 func (v *Viper) BindPFlags(flags *pflag.FlagSet) error {
-	v.markAllSettingsDirty()
 	return v.BindFlagValues(pflagValueSet{flags})
 }
 
@@ -990,6 +989,7 @@ func (v *Viper) BindPFlag(key string, flag *pflag.Flag) error {
 // name as the config key.
 func BindFlagValues(flags FlagValueSet) error { return v.BindFlagValues(flags) }
 func (v *Viper) BindFlagValues(flags FlagValueSet) (err error) {
+	v.markAllSettingsDirty()
 	flags.VisitAll(func(flag FlagValue) {
 		if err = v.BindFlagValue(flag.Name(), flag); err != nil {
 			return
