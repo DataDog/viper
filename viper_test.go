@@ -28,7 +28,6 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"
 
-	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -108,12 +107,6 @@ p_ppu: 0.55
 p_batters.batter.type: Regular
 `)
 
-var remoteExample = []byte(`{
-"id":"0002",
-"type":"cronut",
-"newkey":"remote"
-}`)
-
 func initConfigs(v *Viper) {
 	var r io.Reader
 	v.SetConfigType("yaml")
@@ -135,10 +128,6 @@ func initConfigs(v *Viper) {
 	v.SetConfigType("toml")
 	r = bytes.NewReader(tomlExample)
 	v.unmarshalReader(r, v.config)
-
-	v.SetConfigType("json")
-	remote := bytes.NewReader(remoteExample)
-	v.unmarshalReader(remote, v.kvstore)
 }
 
 func initConfig(v *Viper, typ, config string) {
@@ -343,21 +332,6 @@ func TestHCL(t *testing.T) {
 	assert.NotEqual(t, "cronut", v.Get("type"))
 }
 
-func TestRemotePrecedence(t *testing.T) {
-	v := New()
-	initJSON(v)
-	remote := bytes.NewReader(remoteExample)
-	assert.Equal(t, "0001", v.Get("id"))
-	v.unmarshalReader(remote, v.kvstore)
-	assert.Equal(t, "0001", v.Get("id"))
-	assert.NotEqual(t, "cronut", v.Get("type"))
-	assert.Equal(t, "remote", v.Get("newkey"))
-	v.Set("newkey", "newvalue")
-	assert.NotEqual(t, "remote", v.Get("newkey"))
-	assert.Equal(t, "newvalue", v.Get("newkey"))
-	v.Set("newkey", "remote")
-}
-
 func TestEnv(t *testing.T) {
 	v := New()
 	initJSON(v)
@@ -494,9 +468,95 @@ func TestAllKeys(t *testing.T) {
 	v := New()
 	initConfigs(v)
 
-	ks := sort.StringSlice{"title", "newkey", "owner.organization", "owner.dob", "owner.bio", "name", "beard", "ppu", "batters.batter", "hobbies", "clothing.jacket", "clothing.trousers", "clothing.pants.size", "age", "hacker", "id", "type", "eyes", "p_id", "p_ppu", "p_batters.batter.type", "p_type", "p_name", "foos"}
+	ks := sort.StringSlice{
+		"title",
+		"owner.organization",
+		"owner.dob",
+		"owner.bio",
+		"name",
+		"beard",
+		"ppu",
+		"batters.batter",
+		"hobbies",
+		"clothing.jacket",
+		"clothing.trousers",
+		"clothing.pants.size",
+		"age",
+		"hacker",
+		"id",
+		"type",
+		"eyes",
+		"p_id",
+		"p_ppu",
+		"p_batters.batter.type",
+		"p_type",
+		"p_name",
+		"foos",
+	}
 	dob, _ := time.Parse(time.RFC3339, "1979-05-27T07:32:00Z")
-	all := map[string]interface{}{"owner": map[string]interface{}{"organization": "MongoDB", "bio": "MongoDB Chief Developer Advocate & Hacker at Large", "dob": dob}, "title": "TOML Example", "ppu": 0.55, "eyes": "brown", "clothing": map[string]interface{}{"trousers": "denim", "jacket": "leather", "pants": map[string]interface{}{"size": "large"}}, "id": "0001", "batters": map[string]interface{}{"batter": []interface{}{map[string]interface{}{"type": "Regular"}, map[string]interface{}{"type": "Chocolate"}, map[string]interface{}{"type": "Blueberry"}, map[string]interface{}{"type": "Devil's Food"}}}, "hacker": true, "beard": true, "hobbies": []interface{}{"skateboarding", "snowboarding", "go"}, "age": 35, "type": "donut", "newkey": "remote", "name": "Cake", "p_id": "0001", "p_ppu": "0.55", "p_name": "Cake", "p_batters": map[string]interface{}{"batter": map[string]interface{}{"type": "Regular"}}, "p_type": "donut", "foos": []map[string]interface{}{{"foo": []map[string]interface{}{{"key": 1}, {"key": 2}, {"key": 3}, {"key": 4}}}}}
+	all := map[string]interface{}{
+		"owner": map[string]interface{}{
+			"organization": "MongoDB",
+			"bio":          "MongoDB Chief Developer Advocate & Hacker at Large",
+			"dob":          dob,
+		},
+		"title": "TOML Example",
+		"ppu":   0.55,
+		"eyes":  "brown",
+		"clothing": map[string]interface{}{
+			"trousers": "denim",
+			"jacket":   "leather",
+			"pants": map[string]interface{}{
+				"size": "large",
+			},
+		},
+		"id": "0001",
+		"batters": map[string]interface{}{
+			"batter": []interface{}{
+				map[string]interface{}{
+					"type": "Regular",
+				},
+				map[string]interface{}{
+					"type": "Chocolate",
+				},
+				map[string]interface{}{
+					"type": "Blueberry",
+				},
+				map[string]interface{}{
+					"type": "Devil's Food",
+				},
+			},
+		},
+		"hacker": true,
+		"beard":  true,
+		"hobbies": []interface{}{
+			"skateboarding",
+			"snowboarding",
+			"go",
+		},
+		"age":    35,
+		"type":   "donut",
+		"name":   "Cake",
+		"p_id":   "0001",
+		"p_ppu":  "0.55",
+		"p_name": "Cake",
+		"p_batters": map[string]interface{}{
+			"batter": map[string]interface{}{
+				"type": "Regular",
+			},
+		},
+		"p_type": "donut",
+		"foos": []map[string]interface{}{
+			{
+				"foo": []map[string]interface{}{
+					{"key": 1},
+					{"key": 2},
+					{"key": 3},
+					{"key": 4},
+				},
+			},
+		},
+	}
 
 	var allkeys sort.StringSlice
 	allkeys = v.AllKeys()
@@ -658,133 +718,6 @@ func TestUnmarshalWithDecoderOptions(t *testing.T) {
 	}, &C)
 }
 
-func TestBindPFlags(t *testing.T) {
-	v := New() // create independent Viper object
-	flagSet := pflag.NewFlagSet("test", pflag.ContinueOnError)
-
-	testValues := map[string]*string{
-		"host":     nil,
-		"port":     nil,
-		"endpoint": nil,
-	}
-
-	mutatedTestValues := map[string]string{
-		"host":     "localhost",
-		"port":     "6060",
-		"endpoint": "/public",
-	}
-
-	for name := range testValues {
-		testValues[name] = flagSet.String(name, "", "test")
-	}
-
-	err := v.BindPFlags(flagSet)
-	if err != nil {
-		t.Fatalf("error binding flag set, %v", err)
-	}
-
-	flagSet.VisitAll(func(flag *pflag.Flag) {
-		flag.Value.Set(mutatedTestValues[flag.Name])
-		flag.Changed = true
-	})
-
-	for name, expected := range mutatedTestValues {
-		assert.Equal(t, expected, v.Get(name))
-	}
-}
-
-func TestBindPFlagsStringSlice(t *testing.T) {
-	tests := []struct {
-		Expected []string
-		Value    string
-	}{
-		{nil, ""},
-		{[]string{"jeden"}, "jeden"},
-		{[]string{"dwa", "trzy"}, "dwa,trzy"},
-		{[]string{"cztery", "piec , szesc"}, "cztery,\"piec , szesc\""},
-	}
-
-	v := New()
-	defaultVal := []string{"default"}
-	v.SetDefault("stringslice", defaultVal)
-
-	for _, testValue := range tests {
-		flagSet := pflag.NewFlagSet("test", pflag.ContinueOnError)
-		flagSet.StringSlice("stringslice", testValue.Expected, "test")
-
-		for _, changed := range []bool{true, false} {
-			flagSet.VisitAll(func(f *pflag.Flag) {
-				f.Value.Set(testValue.Value)
-				f.Changed = changed
-			})
-
-			err := v.BindPFlags(flagSet)
-			if err != nil {
-				t.Fatalf("error binding flag set, %v", err)
-			}
-
-			type TestStr struct {
-				StringSlice []string
-			}
-			val := &TestStr{}
-			if err := v.Unmarshal(val); err != nil {
-				t.Fatalf("%+#v cannot unmarshal: %s", testValue.Value, err)
-			}
-			if changed {
-				assert.Equal(t, testValue.Expected, val.StringSlice)
-			} else {
-				assert.Equal(t, defaultVal, val.StringSlice)
-			}
-		}
-	}
-}
-
-func TestBindPFlag(t *testing.T) {
-	v := New()
-
-	testString := "testing"
-	testValue := newStringValue(testString, &testString)
-
-	flag := &pflag.Flag{
-		Name:    "testflag",
-		Value:   testValue,
-		Changed: false,
-	}
-
-	v.BindPFlag("testvalue", flag)
-
-	assert.Equal(t, testString, v.Get("testvalue"))
-
-	flag.Value.Set("testing_mutate")
-	flag.Changed = true // hack for pflag usage
-
-	assert.Equal(t, "testing_mutate", v.Get("testvalue"))
-}
-
-func TestBoundCaseSensitivity(t *testing.T) {
-	v := New()
-	initYAML(v)
-
-	assert.Equal(t, "brown", v.Get("eyes"))
-
-	v.BindEnv("eYEs", "TURTLE_EYES")
-	os.Setenv("TURTLE_EYES", "blue")
-
-	assert.Equal(t, "blue", v.Get("eyes"))
-
-	testString := "green"
-	testValue := newStringValue(testString, &testString)
-
-	flag := &pflag.Flag{
-		Name:    "eyeballs",
-		Value:   testValue,
-		Changed: true,
-	}
-
-	v.BindPFlag("eYEs", flag)
-	assert.Equal(t, "green", v.Get("eyes"))
-}
-
 func TestSizeInBytes(t *testing.T) {
 	input := map[string]struct {
 		Size  uint
@@ -846,8 +779,7 @@ func TestFindsNestedKeys(t *testing.T) {
 		"hobbies": []interface{}{
 			"skateboarding", "snowboarding", "go",
 		},
-		"title":  "TOML Example",
-		"newkey": "remote",
+		"title": "TOML Example",
 		"batters": map[string]interface{}{
 			"batter": []interface{}{
 				map[string]interface{}{
