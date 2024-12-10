@@ -1205,7 +1205,7 @@ func (v *Viper) IsSet(key string) bool {
 	return val != nil
 }
 
-// IsConfigured checks to see if the key has been set in any of the data locations but defaults.
+// IsConfigured checks to see if the key has a non-default value set.
 // IsConfigured is case-insensitive for a key.
 func IsConfigured(key string) bool { return v.IsConfigured(key) }
 func (v *Viper) IsConfigured(key string) bool {
