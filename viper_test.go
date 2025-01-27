@@ -1267,16 +1267,16 @@ func TestWriteConfigTOML(t *testing.T) {
 var yamlWriteExpected = []byte(`age: 35
 beard: true
 clothing:
-  jacket: leather
-  pants:
-    size: large
-  trousers: denim
+    jacket: leather
+    pants:
+        size: large
+    trousers: denim
 eyes: brown
 hacker: true
 hobbies:
-- skateboarding
-- snowboarding
-- go
+    - skateboarding
+    - snowboarding
+    - go
 name: steve
 `)
 
