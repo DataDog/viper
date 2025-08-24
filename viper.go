@@ -32,7 +32,7 @@ import (
 	"strings"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/hashicorp/hcl"
@@ -1542,8 +1542,9 @@ func (v *Viper) unmarshalReader(in io.Reader, c map[string]interface{}) error {
 
 	switch strings.ToLower(v.getConfigType()) {
 	case "yaml", "yml":
-		// Try UnmarshalStrict first, so we can warn about duplicated keys
-		if strictErr := yaml.UnmarshalStrict(buf.Bytes(), &c); strictErr != nil {
+		decoder := yaml.NewDecoder(buf)
+		decoder.KnownFields(true)
+		if strictErr := decoder.Decode(&c); strictErr != nil {
 			if err := yaml.Unmarshal(buf.Bytes(), &c); err != nil {
 				return ConfigParseError{err}
 			}
