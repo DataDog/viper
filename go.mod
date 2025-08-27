@@ -9,6 +9,7 @@ require (
 	github.com/coreos/go-etcd v2.0.0+incompatible // indirect
 	github.com/coreos/go-semver v0.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
+	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.3.4 // indirect
@@ -16,7 +17,6 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.13.0 // indirect
 	github.com/hashicorp/hcl v1.0.0
 	github.com/magiconair/properties v1.8.1
-	github.com/mitchellh/mapstructure v1.1.2
 	github.com/pelletier/go-toml v1.2.0
 	github.com/prometheus/client_golang v1.4.1 // indirect
 	github.com/spf13/afero v1.1.2

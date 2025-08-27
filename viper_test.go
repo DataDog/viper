@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/mitchellh/mapstructure"
+	mapstructure "github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"
 
@@ -245,7 +245,7 @@ func initDirs(t *testing.T) (string, string, func()) {
 	}
 }
 
-//stubs for PFlag Values
+// stubs for PFlag Values
 type stringValue string
 
 func newStringValue(val string, p *string) *stringValue {
@@ -756,7 +756,7 @@ func TestBindPFlagsStringSlice(t *testing.T) {
 		Expected []string
 		Value    string
 	}{
-		{nil, ""},
+		{[]string{}, ""},
 		{[]string{"jeden"}, "jeden"},
 		{[]string{"dwa", "trzy"}, "dwa,trzy"},
 		{[]string{"cztery", "piec , szesc"}, "cztery,\"piec , szesc\""},
@@ -1997,7 +1997,7 @@ func TestAssignToMapThenGet(t *testing.T) {
 	// which hides the bug that v.Get should return the v.override value
 	clothingElem := copyMap(v.Get("clothing").(map[string]interface{}))
 	clothingElem["http://example.com"] = "recommendation"
- 	v.Set("clothing", clothingElem)
+	v.Set("clothing", clothingElem)
 
 	// demonstart that v.Get returns the overriden value, despite having a url in the
 	// key path, and the key not being set directly, but rather being set as a map key
