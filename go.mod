@@ -11,7 +11,6 @@ require (
 	github.com/golang/protobuf v1.3.4 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.13.0 // indirect
-	github.com/hashicorp/hcl v1.0.0
 	github.com/magiconair/properties v1.8.1
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/pelletier/go-toml v1.2.0
