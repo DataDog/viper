@@ -36,11 +36,9 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/hashicorp/hcl"
-	"github.com/hashicorp/hcl/hcl/printer"
 	"github.com/magiconair/properties"
 	"github.com/mitchellh/mapstructure"
 	toml "github.com/pelletier/go-toml"
-	"github.com/spf13/afero"
 	"github.com/spf13/cast"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/pflag"
@@ -172,9 +170,6 @@ type Viper struct {
 	// A set of paths to look for the config file in
 	configPaths []string
 
-	// The filesystem to read config from.
-	fs afero.Fs
-
 	// A set of remote providers to search for the configuration
 	remoteProviders []*defaultRemoteProvider
 
@@ -211,7 +206,6 @@ func New() *Viper {
 	v := new(Viper)
 	v.keyDelim = "."
 	v.configName = "config"
-	v.fs = afero.NewOsFs()
 	v.config = make(map[string]interface{})
 	v.override = make(map[string]interface{})
 	v.defaults = make(map[string]interface{})
@@ -1384,7 +1378,7 @@ func (v *Viper) ReadInConfig() error {
 	}
 
 	jww.DEBUG.Println("Reading file: ", filename)
-	file, err := afero.ReadFile(v.fs, filename)
+	file, err := os.ReadFile(filename)
 	if err != nil {
 		return err
 	}
@@ -1413,7 +1407,7 @@ func (v *Viper) MergeInConfig() error {
 		return UnsupportedConfigError(v.getConfigType())
 	}
 
-	file, err := afero.ReadFile(v.fs, filename)
+	file, err := os.ReadFile(filename)
 	if err != nil {
 		return err
 	}
@@ -1466,69 +1460,6 @@ func (v *Viper) MergeConfigOverride(in io.Reader) error {
 	insensitiviseMap(cfg)
 	mergeMaps(cfg, v.override, nil)
 	return nil
-}
-
-// WriteConfig writes the current configuration to a file.
-func WriteConfig() error { return v.WriteConfig() }
-func (v *Viper) WriteConfig() error {
-	filename, err := v.getConfigFile()
-	if err != nil {
-		return err
-	}
-	return v.writeConfig(filename, true)
-}
-
-// SafeWriteConfig writes current configuration to file only if the file does not exist.
-func SafeWriteConfig() error { return v.SafeWriteConfig() }
-func (v *Viper) SafeWriteConfig() error {
-	filename, err := v.getConfigFile()
-	if err != nil {
-		return err
-	}
-	return v.writeConfig(filename, false)
-}
-
-// WriteConfigAs writes current configuration to a given filename.
-func WriteConfigAs(filename string) error { return v.WriteConfigAs(filename) }
-func (v *Viper) WriteConfigAs(filename string) error {
-	return v.writeConfig(filename, true)
-}
-
-// SafeWriteConfigAs writes current configuration to a given filename if it does not exist.
-func SafeWriteConfigAs(filename string) error { return v.SafeWriteConfigAs(filename) }
-func (v *Viper) SafeWriteConfigAs(filename string) error {
-	return v.writeConfig(filename, false)
-}
-
-func writeConfig(filename string, force bool) error { return v.writeConfig(filename, force) }
-func (v *Viper) writeConfig(filename string, force bool) error {
-	jww.INFO.Println("Attempting to write configuration to file.")
-	ext := filepath.Ext(filename)
-	if len(ext) <= 1 {
-		return fmt.Errorf("Filename: %s requires valid extension.", filename)
-	}
-	configType := ext[1:]
-	if !stringInSlice(configType, SupportedExts) {
-		return UnsupportedConfigError(configType)
-	}
-	if v.config == nil {
-		v.config = make(map[string]interface{})
-	}
-	var flags int
-	if force == true {
-		flags = os.O_CREATE | os.O_TRUNC | os.O_WRONLY
-	} else {
-		if _, err := os.Stat(filename); os.IsNotExist(err) {
-			flags = os.O_WRONLY
-		} else {
-			return fmt.Errorf("File: %s exists. Use WriteConfig to overwrite.", filename)
-		}
-	}
-	f, err := v.fs.OpenFile(filename, flags, os.FileMode(0644))
-	if err != nil {
-		return err
-	}
-	return v.marshalWriter(f, configType)
 }
 
 // Unmarshal a Reader into a map.
@@ -1592,72 +1523,6 @@ func (v *Viper) unmarshalReader(in io.Reader, c map[string]interface{}) error {
 	}
 
 	insensitiviseMap(c)
-	return nil
-}
-
-// Marshal a map into Writer.
-func marshalWriter(f afero.File, configType string) error {
-	return v.marshalWriter(f, configType)
-}
-func (v *Viper) marshalWriter(f afero.File, configType string) error {
-	c := v.AllSettings()
-	switch configType {
-	case "json":
-		b, err := json.MarshalIndent(c, "", "  ")
-		if err != nil {
-			return ConfigMarshalError{err}
-		}
-		_, err = f.WriteString(string(b))
-		if err != nil {
-			return ConfigMarshalError{err}
-		}
-
-	case "hcl":
-		b, err := json.Marshal(c)
-		ast, err := hcl.Parse(string(b))
-		if err != nil {
-			return ConfigMarshalError{err}
-		}
-		err = printer.Fprint(f, ast.Node)
-		if err != nil {
-			return ConfigMarshalError{err}
-		}
-
-	case "prop", "props", "properties":
-		if v.properties == nil {
-			v.properties = properties.NewProperties()
-		}
-		p := v.properties
-		for _, key := range v.AllKeys() {
-			_, _, err := p.Set(key, v.GetString(key))
-			if err != nil {
-				return ConfigMarshalError{err}
-			}
-		}
-		_, err := p.WriteComment(f, "#", properties.UTF8)
-		if err != nil {
-			return ConfigMarshalError{err}
-		}
-
-	case "toml":
-		t, err := toml.TreeFromMap(c)
-		if err != nil {
-			return ConfigMarshalError{err}
-		}
-		s := t.String()
-		if _, err := f.WriteString(s); err != nil {
-			return ConfigMarshalError{err}
-		}
-
-	case "yaml", "yml":
-		b, err := yaml.Marshal(c)
-		if err != nil {
-			return ConfigMarshalError{err}
-		}
-		if _, err = f.WriteString(string(b)); err != nil {
-			return ConfigMarshalError{err}
-		}
-	}
 	return nil
 }
 
@@ -1972,12 +1837,6 @@ func (v *Viper) allSettings(getter func(string) interface{}) map[string]interfac
 	return m
 }
 
-// SetFs sets the filesystem to use to read configuration.
-func SetFs(fs afero.Fs) { v.SetFs(fs) }
-func (v *Viper) SetFs(fs afero.Fs) {
-	v.fs = fs
-}
-
 // SetConfigName sets name for the config file.
 // Does not include extension.
 func SetConfigName(in string) { v.SetConfigName(in) }
@@ -2032,7 +1891,7 @@ func (v *Viper) searchInPath(in string) (filename string, err error) {
 	jww.DEBUG.Println("Searching for config in ", in)
 	for _, ext := range SupportedExts {
 		jww.DEBUG.Println("Checking for", filepath.Join(in, v.configName+"."+ext))
-		b, err := exists(v.fs, filepath.Join(in, v.configName+"."+ext))
+		b, err := exists(filepath.Join(in, v.configName+"."+ext))
 		if err != nil {
 			lastError = err
 		} else if b {

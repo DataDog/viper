@@ -25,7 +25,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/mitchellh/mapstructure"
-	"github.com/spf13/afero"
 	"github.com/spf13/cast"
 
 	"github.com/spf13/pflag"
@@ -245,7 +244,7 @@ func initDirs(t *testing.T) (string, string, func()) {
 	}
 }
 
-//stubs for PFlag Values
+// stubs for PFlag Values
 type stringValue string
 
 func newStringValue(val string, p *string) *stringValue {
@@ -1063,19 +1062,19 @@ func TestWrongDirsSearchNotFound(t *testing.T) {
 }
 
 func TestNoPermissionDirs(t *testing.T) {
-	tmpdir := t.TempDir()
-
 	v := New()
 	v.SetDefault(`key`, `default`)
 
+	tmpDir := t.TempDir()
+	dirPath := path.Join(tmpDir, "directory")
+
 	// Make an fs with an un-readable /directory
-	v.fs = afero.NewBasePathFs(afero.NewOsFs(), tmpdir)
-	err := v.fs.Mkdir("/directory", 000)
+	err := os.Mkdir(dirPath, 000)
 	if err != nil {
 		t.Fatalf("Error from fs.Mkdir: %v", err)
 	}
 
-	v.AddConfigPath("/directory")
+	v.AddConfigPath(dirPath)
 	err = v.ReadInConfig()
 
 	if !errors.Is(err, os.ErrPermission) {
@@ -1123,190 +1122,6 @@ func TestSub(t *testing.T) {
 
 	subv = v.Sub("missing.key")
 	assert.Equal(t, (*Viper)(nil), subv)
-}
-
-var hclWriteExpected = []byte(`"foos" = {
-  "foo" = {
-    "key" = 1
-  }
-
-  "foo" = {
-    "key" = 2
-  }
-
-  "foo" = {
-    "key" = 3
-  }
-
-  "foo" = {
-    "key" = 4
-  }
-}
-
-"id" = "0001"
-
-"name" = "Cake"
-
-"ppu" = 0.55
-
-"type" = "donut"`)
-
-func TestWriteConfigHCL(t *testing.T) {
-	v := New()
-	fs := afero.NewMemMapFs()
-	v.SetFs(fs)
-	v.SetConfigName("c")
-	v.SetConfigType("hcl")
-	err := v.ReadConfig(bytes.NewBuffer(hclExample))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := v.WriteConfigAs("c.hcl"); err != nil {
-		t.Fatal(err)
-	}
-	read, err := afero.ReadFile(fs, "c.hcl")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, hclWriteExpected, read)
-}
-
-var jsonWriteExpected = []byte(`{
-  "batters": {
-    "batter": [
-      {
-        "type": "Regular"
-      },
-      {
-        "type": "Chocolate"
-      },
-      {
-        "type": "Blueberry"
-      },
-      {
-        "type": "Devil's Food"
-      }
-    ]
-  },
-  "id": "0001",
-  "name": "Cake",
-  "ppu": 0.55,
-  "type": "donut"
-}`)
-
-func TestWriteConfigJson(t *testing.T) {
-	v := New()
-	fs := afero.NewMemMapFs()
-	v.SetFs(fs)
-	v.SetConfigName("c")
-	v.SetConfigType("json")
-	err := v.ReadConfig(bytes.NewBuffer(jsonExample))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := v.WriteConfigAs("c.json"); err != nil {
-		t.Fatal(err)
-	}
-	read, err := afero.ReadFile(fs, "c.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, jsonWriteExpected, read)
-}
-
-var propertiesWriteExpected = []byte(`p_id = 0001
-p_type = donut
-p_name = Cake
-p_ppu = 0.55
-p_batters.batter.type = Regular
-`)
-
-func TestWriteConfigProperties(t *testing.T) {
-	v := New()
-	fs := afero.NewMemMapFs()
-	v.SetFs(fs)
-	v.SetConfigName("c")
-	v.SetConfigType("properties")
-	err := v.ReadConfig(bytes.NewBuffer(propertiesExample))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := v.WriteConfigAs("c.properties"); err != nil {
-		t.Fatal(err)
-	}
-	read, err := afero.ReadFile(fs, "c.properties")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, propertiesWriteExpected, read)
-}
-
-func TestWriteConfigTOML(t *testing.T) {
-	fs := afero.NewMemMapFs()
-	v := New()
-	v.SetFs(fs)
-	v.SetConfigName("c")
-	v.SetConfigType("toml")
-	err := v.ReadConfig(bytes.NewBuffer(tomlExample))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := v.WriteConfigAs("c.toml"); err != nil {
-		t.Fatal(err)
-	}
-
-	// The TOML String method does not order the contents.
-	// Therefore, we must read the generated file and compare the data.
-	v2 := New()
-	v2.SetFs(fs)
-	v2.SetConfigName("c")
-	v2.SetConfigType("toml")
-	v2.SetConfigFile("c.toml")
-	err = v2.ReadInConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.Equal(t, v.GetString("title"), v2.GetString("title"))
-	assert.Equal(t, v.GetString("owner.bio"), v2.GetString("owner.bio"))
-	assert.Equal(t, v.GetString("owner.dob"), v2.GetString("owner.dob"))
-	assert.Equal(t, v.GetString("owner.organization"), v2.GetString("owner.organization"))
-}
-
-var yamlWriteExpected = []byte(`age: 35
-beard: true
-clothing:
-  jacket: leather
-  pants:
-    size: large
-  trousers: denim
-eyes: brown
-hacker: true
-hobbies:
-- skateboarding
-- snowboarding
-- go
-name: steve
-`)
-
-func TestWriteConfigYAML(t *testing.T) {
-	v := New()
-	fs := afero.NewMemMapFs()
-	v.SetFs(fs)
-	v.SetConfigName("c")
-	v.SetConfigType("yaml")
-	err := v.ReadConfig(bytes.NewBuffer(yamlExample))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := v.WriteConfigAs("c.yaml"); err != nil {
-		t.Fatal(err)
-	}
-	read, err := afero.ReadFile(fs, "c.yaml")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, yamlWriteExpected, read)
 }
 
 var yamlMergeExampleTgt = []byte(`
@@ -1997,7 +1812,7 @@ func TestAssignToMapThenGet(t *testing.T) {
 	// which hides the bug that v.Get should return the v.override value
 	clothingElem := copyMap(v.Get("clothing").(map[string]interface{}))
 	clothingElem["http://example.com"] = "recommendation"
- 	v.Set("clothing", clothingElem)
+	v.Set("clothing", clothingElem)
 
 	// demonstart that v.Get returns the overriden value, despite having a url in the
 	// key path, and the key not being set directly, but rather being set as a map key
