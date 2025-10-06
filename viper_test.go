@@ -97,26 +97,6 @@ var jsonExample = []byte(`{
     }
 }`)
 
-var hclExample = []byte(`
-id = "0001"
-type = "donut"
-name = "Cake"
-ppu = 0.55
-foos {
-	foo {
-		key = 1
-	}
-	foo {
-		key = 2
-	}
-	foo {
-		key = 3
-	}
-	foo {
-		key = 4
-	}
-}`)
-
 var propertiesExample = []byte(`
 p_id: 0001
 p_type: donut
@@ -139,10 +119,6 @@ func initConfigs(v *Viper) {
 
 	v.SetConfigType("json")
 	r = bytes.NewReader(jsonExample)
-	v.unmarshalReader(r, v.config)
-
-	v.SetConfigType("hcl")
-	r = bytes.NewReader(hclExample)
 	v.unmarshalReader(r, v.config)
 
 	v.SetConfigType("properties")
