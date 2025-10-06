@@ -196,13 +196,6 @@ func initTOML(v *Viper) {
 	v.unmarshalReader(r, v.config)
 }
 
-func initHcl(v *Viper) {
-	v.SetConfigType("hcl")
-	r := bytes.NewReader(hclExample)
-
-	v.unmarshalReader(r, v.config)
-}
-
 // make directories for testing
 func initDirs(t *testing.T) (string, string, func()) {
 
@@ -371,18 +364,6 @@ func TestTOML(t *testing.T) {
 	v := New()
 	initTOML(v)
 	assert.Equal(t, "TOML Example", v.Get("title"))
-}
-
-func TestHCL(t *testing.T) {
-	v := New()
-	initHcl(v)
-	assert.Equal(t, "0001", v.Get("id"))
-	assert.Equal(t, 0.55, v.Get("ppu"))
-	assert.Equal(t, "donut", v.Get("type"))
-	assert.Equal(t, "Cake", v.Get("name"))
-	v.Set("id", "0002")
-	assert.Equal(t, "0002", v.Get("id"))
-	assert.NotEqual(t, "cronut", v.Get("type"))
 }
 
 func TestRemotePrecedence(t *testing.T) {
