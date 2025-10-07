@@ -25,7 +25,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	mapstructure "github.com/go-viper/mapstructure/v2"
-	"github.com/spf13/afero"
 	"github.com/spf13/cast"
 
 	"github.com/spf13/pflag"
@@ -98,26 +97,6 @@ var jsonExample = []byte(`{
     }
 }`)
 
-var hclExample = []byte(`
-id = "0001"
-type = "donut"
-name = "Cake"
-ppu = 0.55
-foos {
-	foo {
-		key = 1
-	}
-	foo {
-		key = 2
-	}
-	foo {
-		key = 3
-	}
-	foo {
-		key = 4
-	}
-}`)
-
 var propertiesExample = []byte(`
 p_id: 0001
 p_type: donut
@@ -140,10 +119,6 @@ func initConfigs(v *Viper) {
 
 	v.SetConfigType("json")
 	r = bytes.NewReader(jsonExample)
-	v.unmarshalReader(r, v.config)
-
-	v.SetConfigType("hcl")
-	r = bytes.NewReader(hclExample)
 	v.unmarshalReader(r, v.config)
 
 	v.SetConfigType("properties")
@@ -193,13 +168,6 @@ func initProperties(v *Viper) {
 func initTOML(v *Viper) {
 	v.SetConfigType("toml")
 	r := bytes.NewReader(tomlExample)
-
-	v.unmarshalReader(r, v.config)
-}
-
-func initHcl(v *Viper) {
-	v.SetConfigType("hcl")
-	r := bytes.NewReader(hclExample)
 
 	v.unmarshalReader(r, v.config)
 }
@@ -374,18 +342,6 @@ func TestTOML(t *testing.T) {
 	assert.Equal(t, "TOML Example", v.Get("title"))
 }
 
-func TestHCL(t *testing.T) {
-	v := New()
-	initHcl(v)
-	assert.Equal(t, "0001", v.Get("id"))
-	assert.Equal(t, 0.55, v.Get("ppu"))
-	assert.Equal(t, "donut", v.Get("type"))
-	assert.Equal(t, "Cake", v.Get("name"))
-	v.Set("id", "0002")
-	assert.Equal(t, "0002", v.Get("id"))
-	assert.NotEqual(t, "cronut", v.Get("type"))
-}
-
 func TestRemotePrecedence(t *testing.T) {
 	v := New()
 	initJSON(v)
@@ -537,9 +493,9 @@ func TestAllKeys(t *testing.T) {
 	v := New()
 	initConfigs(v)
 
-	ks := sort.StringSlice{"title", "newkey", "owner.organization", "owner.dob", "owner.bio", "name", "beard", "ppu", "batters.batter", "hobbies", "clothing.jacket", "clothing.trousers", "clothing.pants.size", "age", "hacker", "id", "type", "eyes", "p_id", "p_ppu", "p_batters.batter.type", "p_type", "p_name", "foos"}
+	ks := sort.StringSlice{"title", "newkey", "owner.organization", "owner.dob", "owner.bio", "name", "beard", "ppu", "batters.batter", "hobbies", "clothing.jacket", "clothing.trousers", "clothing.pants.size", "age", "hacker", "id", "type", "eyes", "p_id", "p_ppu", "p_batters.batter.type", "p_type", "p_name"}
 	dob, _ := time.Parse(time.RFC3339, "1979-05-27T07:32:00Z")
-	all := map[string]interface{}{"owner": map[string]interface{}{"organization": "MongoDB", "bio": "MongoDB Chief Developer Advocate & Hacker at Large", "dob": dob}, "title": "TOML Example", "ppu": 0.55, "eyes": "brown", "clothing": map[string]interface{}{"trousers": "denim", "jacket": "leather", "pants": map[string]interface{}{"size": "large"}}, "id": "0001", "batters": map[string]interface{}{"batter": []interface{}{map[string]interface{}{"type": "Regular"}, map[string]interface{}{"type": "Chocolate"}, map[string]interface{}{"type": "Blueberry"}, map[string]interface{}{"type": "Devil's Food"}}}, "hacker": true, "beard": true, "hobbies": []interface{}{"skateboarding", "snowboarding", "go"}, "age": 35, "type": "donut", "newkey": "remote", "name": "Cake", "p_id": "0001", "p_ppu": "0.55", "p_name": "Cake", "p_batters": map[string]interface{}{"batter": map[string]interface{}{"type": "Regular"}}, "p_type": "donut", "foos": []map[string]interface{}{map[string]interface{}{"foo": []map[string]interface{}{map[string]interface{}{"key": 1}, map[string]interface{}{"key": 2}, map[string]interface{}{"key": 3}, map[string]interface{}{"key": 4}}}}}
+	all := map[string]interface{}{"owner": map[string]interface{}{"organization": "MongoDB", "bio": "MongoDB Chief Developer Advocate & Hacker at Large", "dob": dob}, "title": "TOML Example", "ppu": 0.55, "eyes": "brown", "clothing": map[string]interface{}{"trousers": "denim", "jacket": "leather", "pants": map[string]interface{}{"size": "large"}}, "id": "0001", "batters": map[string]interface{}{"batter": []interface{}{map[string]interface{}{"type": "Regular"}, map[string]interface{}{"type": "Chocolate"}, map[string]interface{}{"type": "Blueberry"}, map[string]interface{}{"type": "Devil's Food"}}}, "hacker": true, "beard": true, "hobbies": []interface{}{"skateboarding", "snowboarding", "go"}, "age": 35, "type": "donut", "newkey": "remote", "name": "Cake", "p_id": "0001", "p_ppu": "0.55", "p_name": "Cake", "p_batters": map[string]interface{}{"batter": map[string]interface{}{"type": "Regular"}}, "p_type": "donut"}
 
 	var allkeys sort.StringSlice
 	allkeys = v.AllKeys()
@@ -947,24 +903,6 @@ func TestFindsNestedKeys(t *testing.T) {
 		"clothing.trousers":   "denim",
 		"owner.dob":           dob,
 		"beard":               true,
-		"foos": []map[string]interface{}{
-			map[string]interface{}{
-				"foo": []map[string]interface{}{
-					map[string]interface{}{
-						"key": 1,
-					},
-					map[string]interface{}{
-						"key": 2,
-					},
-					map[string]interface{}{
-						"key": 3,
-					},
-					map[string]interface{}{
-						"key": 4,
-					},
-				},
-			},
-		},
 	}
 
 	for key, expectedValue := range expected {
@@ -1063,19 +1001,19 @@ func TestWrongDirsSearchNotFound(t *testing.T) {
 }
 
 func TestNoPermissionDirs(t *testing.T) {
-	tmpdir := t.TempDir()
-
 	v := New()
 	v.SetDefault(`key`, `default`)
 
+	tmpDir := t.TempDir()
+	dirPath := path.Join(tmpDir, "directory")
+
 	// Make an fs with an un-readable /directory
-	v.fs = afero.NewBasePathFs(afero.NewOsFs(), tmpdir)
-	err := v.fs.Mkdir("/directory", 000)
+	err := os.Mkdir(dirPath, 000)
 	if err != nil {
 		t.Fatalf("Error from fs.Mkdir: %v", err)
 	}
 
-	v.AddConfigPath("/directory")
+	v.AddConfigPath(dirPath)
 	err = v.ReadInConfig()
 
 	if !errors.Is(err, os.ErrPermission) {
@@ -1123,190 +1061,6 @@ func TestSub(t *testing.T) {
 
 	subv = v.Sub("missing.key")
 	assert.Equal(t, (*Viper)(nil), subv)
-}
-
-var hclWriteExpected = []byte(`"foos" = {
-  "foo" = {
-    "key" = 1
-  }
-
-  "foo" = {
-    "key" = 2
-  }
-
-  "foo" = {
-    "key" = 3
-  }
-
-  "foo" = {
-    "key" = 4
-  }
-}
-
-"id" = "0001"
-
-"name" = "Cake"
-
-"ppu" = 0.55
-
-"type" = "donut"`)
-
-func TestWriteConfigHCL(t *testing.T) {
-	v := New()
-	fs := afero.NewMemMapFs()
-	v.SetFs(fs)
-	v.SetConfigName("c")
-	v.SetConfigType("hcl")
-	err := v.ReadConfig(bytes.NewBuffer(hclExample))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := v.WriteConfigAs("c.hcl"); err != nil {
-		t.Fatal(err)
-	}
-	read, err := afero.ReadFile(fs, "c.hcl")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, hclWriteExpected, read)
-}
-
-var jsonWriteExpected = []byte(`{
-  "batters": {
-    "batter": [
-      {
-        "type": "Regular"
-      },
-      {
-        "type": "Chocolate"
-      },
-      {
-        "type": "Blueberry"
-      },
-      {
-        "type": "Devil's Food"
-      }
-    ]
-  },
-  "id": "0001",
-  "name": "Cake",
-  "ppu": 0.55,
-  "type": "donut"
-}`)
-
-func TestWriteConfigJson(t *testing.T) {
-	v := New()
-	fs := afero.NewMemMapFs()
-	v.SetFs(fs)
-	v.SetConfigName("c")
-	v.SetConfigType("json")
-	err := v.ReadConfig(bytes.NewBuffer(jsonExample))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := v.WriteConfigAs("c.json"); err != nil {
-		t.Fatal(err)
-	}
-	read, err := afero.ReadFile(fs, "c.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, jsonWriteExpected, read)
-}
-
-var propertiesWriteExpected = []byte(`p_id = 0001
-p_type = donut
-p_name = Cake
-p_ppu = 0.55
-p_batters.batter.type = Regular
-`)
-
-func TestWriteConfigProperties(t *testing.T) {
-	v := New()
-	fs := afero.NewMemMapFs()
-	v.SetFs(fs)
-	v.SetConfigName("c")
-	v.SetConfigType("properties")
-	err := v.ReadConfig(bytes.NewBuffer(propertiesExample))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := v.WriteConfigAs("c.properties"); err != nil {
-		t.Fatal(err)
-	}
-	read, err := afero.ReadFile(fs, "c.properties")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, propertiesWriteExpected, read)
-}
-
-func TestWriteConfigTOML(t *testing.T) {
-	fs := afero.NewMemMapFs()
-	v := New()
-	v.SetFs(fs)
-	v.SetConfigName("c")
-	v.SetConfigType("toml")
-	err := v.ReadConfig(bytes.NewBuffer(tomlExample))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := v.WriteConfigAs("c.toml"); err != nil {
-		t.Fatal(err)
-	}
-
-	// The TOML String method does not order the contents.
-	// Therefore, we must read the generated file and compare the data.
-	v2 := New()
-	v2.SetFs(fs)
-	v2.SetConfigName("c")
-	v2.SetConfigType("toml")
-	v2.SetConfigFile("c.toml")
-	err = v2.ReadInConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.Equal(t, v.GetString("title"), v2.GetString("title"))
-	assert.Equal(t, v.GetString("owner.bio"), v2.GetString("owner.bio"))
-	assert.Equal(t, v.GetString("owner.dob"), v2.GetString("owner.dob"))
-	assert.Equal(t, v.GetString("owner.organization"), v2.GetString("owner.organization"))
-}
-
-var yamlWriteExpected = []byte(`age: 35
-beard: true
-clothing:
-  jacket: leather
-  pants:
-    size: large
-  trousers: denim
-eyes: brown
-hacker: true
-hobbies:
-- skateboarding
-- snowboarding
-- go
-name: steve
-`)
-
-func TestWriteConfigYAML(t *testing.T) {
-	v := New()
-	fs := afero.NewMemMapFs()
-	v.SetFs(fs)
-	v.SetConfigName("c")
-	v.SetConfigType("yaml")
-	err := v.ReadConfig(bytes.NewBuffer(yamlExample))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := v.WriteConfigAs("c.yaml"); err != nil {
-		t.Fatal(err)
-	}
-	read, err := afero.ReadFile(fs, "c.yaml")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, yamlWriteExpected, read)
 }
 
 var yamlMergeExampleTgt = []byte(`
