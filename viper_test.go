@@ -389,6 +389,15 @@ func TestEnvTransformer(t *testing.T) {
 	assert.Equal(t, "transformed", v.Get("id"))
 }
 
+func TestEnvVarsBound(t *testing.T) {
+	v := New()
+	initJSON(v)
+
+	v.BindEnv("id", "MY_ID")
+
+	assert.Equal(t, []string{"MY_ID"}, v.EnvVarsBound("id"))
+}
+
 func TestMultipleEnv(t *testing.T) {
 	v := New()
 	initJSON(v)

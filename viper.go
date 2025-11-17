@@ -29,6 +29,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -1046,6 +1047,15 @@ func (v *Viper) BindEnv(input ...string) error {
 	v.SetKnown(key)
 
 	return nil
+}
+
+// EnvVarsBound returns the env vars that are bound to the key
+func (v *Viper) EnvVarsBound(key string) []string {
+	envvars, found := v.env[key]
+	if !found {
+		return nil
+	}
+	return slices.Clone(envvars)
 }
 
 // Given a key, find the value.
