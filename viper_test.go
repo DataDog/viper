@@ -1758,3 +1758,27 @@ func TestAssignToMapThenGet(t *testing.T) {
 	expected := `recommendation`
 	require.Equal(t, expected, v.Get("clothing.http://example.com"))
 }
+
+func TestHasSection(t *testing.T) {
+	config := `
+level_1:
+  level_2:
+    port: 1234
+level_3:
+`
+	v := New()
+	v.SetDefault("level_1.level_2.port", 9999)
+
+	initConfig(v, "yaml", config)
+
+	// Non-empty sections
+	assert.True(t, v.HasSection("level_1"))
+	assert.True(t, v.HasSection("level_1.level_2"))
+	// Return false if a scalar value exists, or is not defined at all
+	assert.False(t, v.HasSection("level_1.level_2.port"))
+	assert.False(t, v.HasSection("level_1.level_2.host"))
+	// An empty section
+	assert.True(t, v.HasSection("level_3"))
+	// Non-existant section
+	assert.False(t, v.HasSection("level_4"))
+}
