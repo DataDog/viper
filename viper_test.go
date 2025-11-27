@@ -291,6 +291,16 @@ func TestOverrides(t *testing.T) {
 	assert.Equal(t, 40, v.Get("age"))
 }
 
+func TestOverridesWithNil(t *testing.T) {
+	v := New()
+	v.SetDefault("age", 40)
+	assert.Equal(t, 40, v.Get("age"))
+
+	// nil value should still override the others
+	v.Set("age", nil)
+	assert.Equal(t, nil, v.Get("age"))
+}
+
 func TestDefaultPost(t *testing.T) {
 	v := New()
 	assert.NotEqual(t, "NYC", v.Get("state"))
