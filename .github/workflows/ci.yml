@@ -21,12 +21,12 @@ jobs:
 
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@424fc82d43fa5a37540bae62709ddcc23d9520d4 # v2
         with:
           go-version: ${{ matrix.go }}
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@dc323e67f16fb5f7663d20ff7941f27f5809e9b6 # v2
 
 # the DataDog fork of this repository has many lint failures
 #      - name: Lint
