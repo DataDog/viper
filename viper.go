@@ -29,6 +29,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -1831,7 +1832,9 @@ func (v *Viper) AllSettingsWithoutDefault() map[string]interface{} {
 func (v *Viper) allSettings(getter func(string) interface{}) map[string]interface{} {
 	m := map[string]interface{}{}
 	// start from the list of keys, and construct the map one value at a time
-	for _, k := range v.AllKeys() {
+	allKeys := v.AllKeys()
+	slices.Sort(allKeys)
+	for _, k := range allKeys {
 		value := getter(k)
 		if value == nil {
 			// should only happens if we `getter` ignors defaults
