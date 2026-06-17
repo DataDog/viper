@@ -1,6 +1,6 @@
 module github.com/DataDog/viper
 
-go 1.26
+go 1.25
 
 require (
 	github.com/fsnotify/fsnotify v1.4.7
